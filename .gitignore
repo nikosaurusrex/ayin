@@ -1,0 +1,12 @@
+.vscode/**
+.vs/**
+build/**
+bin/**
+*.vsidx
+*.sln
+*.user
+*.vcxproj
+llvm/**
+*.pbxproj
+*.xcworkspacedata
+.DS_STORE

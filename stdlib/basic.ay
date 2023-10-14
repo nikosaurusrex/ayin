@@ -1,0 +1,50 @@
+alias int s32;
+alias uint u32;
+alias float f32;
+
+func printf(fmt: *u8) s32 #foreign #vararg;
+
+alias FILE void;
+func fopen(path: *u8, mode: *u8) *FILE #foreign;
+func fclose(file: *FILE) s32 #foreign;
+func ftell(file: *FILE) s32 #foreign;
+func fread(ptr: *void, size: s64, count: s64, file: *FILE) s64 #foreign;
+
+SEEK_SET :: 0;
+SEEK_CUR :: 1;
+SEEK_END :: 2;
+
+func fseek(file: *FILE, offset: s32, origin: s32) #foreign;
+
+func malloc(size: u64) *void #foreign;
+func free(ptr: *void) #foreign;
+func memcpy(dest: *void, src: *void, count: u64) #foreign;
+func memset(dest: *void, c: s32, n: u64) #foreign;
+
+func system(string: *u8) s32 #foreign;
+func exit(status: s32) #foreign;
+
+func array_reserve<T>(array: *[..] T, amount: s64) {
+    if amount <= 0 {
+        amount = 16;
+    }
+
+    mem := cast(*T) malloc(amount * sizeof(T));
+
+    if array.data != nil {
+        memcpy(mem, array.data, array.length * sizeof(T));
+        free(array.data);
+    }
+
+    array.data = mem;
+    array.capacity = amount;
+}
+
+func array_add<T>(array: *[..] T, item: T) {
+    if array.length + 1 >= array.capacity {
+        array_reserve(array, array.capacity * 2);
+    }
+
+    array.length++;
+    (*array)[array.length - 1] = item;
+}

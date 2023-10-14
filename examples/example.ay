@@ -1,0 +1,6 @@
+#use "basic";
+
+func main() s32 {
+
+    return 0;
+}
