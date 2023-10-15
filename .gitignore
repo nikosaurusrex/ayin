@@ -10,3 +10,7 @@ llvm/**
 *.pbxproj
 *.xcworkspacedata
 .DS_STORE
+**.exe
+**.ll
+**.pdb
+**.ilk

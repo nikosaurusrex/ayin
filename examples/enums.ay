@@ -1,0 +1,18 @@
+#use "basic";
+
+enum Weekdays {
+    Monday = 0,
+    Tuesday = 5,
+    Wednesday = 6,
+    Thursday = 7,
+    Friday = 51,
+    Saturday = "Saturday" /* any literal accepted */
+}
+
+func main() s32 {
+    printf("%d\n", Weekdays.Monday);
+    printf("%d\n", Weekdays.Wednesday);
+    printf("%.*s\n", Weekdays.Saturday.length, Weekdays.Saturday.data);
+
+    return 0;
+}

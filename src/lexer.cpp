@@ -77,7 +77,6 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 		case 4: {
 			if (lexeme == "true") return TK_TRUE;
 			else if (lexeme == "else") return TK_ELSE;
-			else if (lexeme == "while") return TK_WHILE;
 			else if (lexeme == "enum") return TK_ENUM;
 			else if (lexeme == "func") return TK_FUNC;
 			else if (lexeme == "cast") return TK_CAST;
@@ -88,6 +87,7 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 			else if (lexeme == "alias") return TK_ALIAS;
 			else if (lexeme == "break") return TK_BREAK;
 			else if (lexeme == "defer") return TK_DEFER;
+			else if (lexeme == "while") return TK_WHILE;
 			else return TK_ATOM;
 		} break;
 		case 6: {

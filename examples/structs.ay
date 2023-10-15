@@ -1,0 +1,29 @@
+#use "basic";
+
+struct Person {
+    name: str,
+    age: s32
+}
+
+func print_person(p: *Person) {
+    printf("%.*s %d\n", p.name.length, p.name.data, p.age);
+}
+
+func main() s32 {
+    p: Person;
+    p.name = "Anna";
+    p.age = 240;
+    
+    q := {"Peter", 51} Person;
+
+    print_person(&p);
+    print_person(&q);
+
+    w := cast (*Person) malloc(sizeof(Person));
+    w.name = "Thomas";
+    w.age = 31;
+
+    print_person(w);
+
+    return 0;
+}

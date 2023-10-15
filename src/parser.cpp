@@ -145,6 +145,9 @@ Enum *Parser::parse_enum_declaration() {
 		if (expect_eat('=')) {
 			mem.value = parse_literal();
 		} else {
+			if (!expect(',')) {
+				compiler->report_error(token_location(peek()), "Expected '=' or ',' after enum member name");
+			}
 			mem.index = index;
 		}
 		index++;

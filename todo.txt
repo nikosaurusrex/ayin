@@ -1,6 +1,6 @@
-auto cast (from one pointer to another of different element types for example and other conversions that need permission like from float to int)
-enums
-new, delete
+defer
 using (include struct or enum scope in current scope)
-
-.type member / types as first class entities?
+.type
+better array and struct initalization with compound literals
+global variable initialization
+test functions #test

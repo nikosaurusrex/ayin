@@ -1,0 +1,28 @@
+#use "basic";
+
+THIS_IS_A_CONSTANT :: 510;
+
+func main() s32 {
+    printf("%d\n", THIS_IS_A_CONSTANT);
+
+    a: s8;
+    b: s16 = 5;
+    c: s32 = 61;
+    d: s64;
+    e := 51; // type inference
+    f: u8 = 0xa;
+    g: f32;
+    h: f64 = 5125.124;
+    i := true;
+    j: bool = false;
+    k := "asdsadka";
+
+    printf("%d %d %d %d %d %d\n", a, cast(s32) b, c, d, e, cast(s32) f);
+    printf("%f %f\n", g, h);
+    printf("%d %d\n", cast(s32) i, cast(s32) j);
+    printf("%s\n", k);
+    printf("%p\n", nil);
+    printf("%d\n", sizeof(s32));
+
+    return 0;
+}
