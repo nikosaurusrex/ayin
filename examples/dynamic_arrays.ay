@@ -8,8 +8,8 @@ func main() s32 {
 	array_add(&a, 1);
 	array_add(&a, 91);
 
-	for v := a {
-		printf("%d\n".data, v);
+	for v in a {
+		printf("%d\n", v);
 	}
     
 	return 0;

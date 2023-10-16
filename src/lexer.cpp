@@ -72,7 +72,6 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 		} break;
 		case 3: {
 			if (lexeme == "for") return TK_FOR;
-			else if (lexeme == "nil") return TK_NIL;
 			else return TK_ATOM;
 		} break;
 		case 4: {
@@ -80,6 +79,7 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 			else if (lexeme == "else") return TK_ELSE;
 			else if (lexeme == "enum") return TK_ENUM;
 			else if (lexeme == "func") return TK_FUNC;
+			else if (lexeme == "null") return TK_NIL;
 			else if (lexeme == "cast") return TK_CAST;
 			else return TK_ATOM;
 		} break;

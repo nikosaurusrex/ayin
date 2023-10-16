@@ -3,6 +3,12 @@
 func main() s32 {
     a := {7, 1, 2, 5}[]s32;
 
+	j := 0;
+	while j < 6 {
+		printf("%d\n", j);
+		j++;
+	}
+
 	for i in 0..4 {
 		printf("%d @ %d\n", i, a[i]);
 	}

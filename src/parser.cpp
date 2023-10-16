@@ -945,7 +945,7 @@ TypeInfo *Parser::parse_type_specifier() {
 	
 	if (tt == TK_ATOM) {
 		TokenData td = token_data(t);
-		if (td.lexeme == "str") type_info = compiler->type_string;
+		if (td.lexeme == "string") type_info = compiler->type_string;
 		else if (td.lexeme == "void") type_info = compiler->type_void;
 		else if (td.lexeme == "bool") type_info = compiler->type_bool;
 		else if (td.lexeme == "s8") type_info = compiler->type_s8;

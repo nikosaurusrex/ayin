@@ -4,15 +4,15 @@ func main() s32 {
     a := {7, 1, 2, 5}[]s32;
     b: [5]s32;
 
-    for a {
-        printf("value %d at %d\n", it, it_index);
-    }
-
-    for v := a {
+    for v in a {
         printf("value %d at %d\n", v, it_index);
     }
+
+    for i, v in a {
+        printf("value %d at %d\n", v, i);
+    }
     
-    for i := 0..a.length {
+    for i in 0..a.length {
         printf("value %d at %d\n", a[i], i);
     }
     
