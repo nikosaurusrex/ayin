@@ -64,7 +64,8 @@ enum TokenType {
 	TK_CAST,
 	TK_DEFER,
 	TK_NIL,
-	TK_SIZEOF
+	TK_SIZEOF,
+	TK_IN
 };
 
 struct TokenData {

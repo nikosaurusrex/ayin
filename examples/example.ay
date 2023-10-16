@@ -1,6 +1,11 @@
 #use "basic";
 
 func main() s32 {
+    a := {7, 1, 2, 5}[]s32;
 
-    return 0;
+	for v in a {
+		printf("%d %d\n", v);
+	}
+
+	return 0;
 }

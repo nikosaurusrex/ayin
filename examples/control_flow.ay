@@ -1,19 +1,23 @@
 #use "basic";
 
 func main() s32 {
-	i := 0;
-	while i < 10 {
-		printf("%d\n", i);
+    a := {7, 1, 2, 5}[]s32;
 
-		i++;
+	for i in 0..4 {
+		printf("%d @ %d\n", i, a[i]);
 	}
 
-	for j := 0..20 {
-		if j % 2 == 0 {
-			printf("%d\n", j);
-		}
+	for i in 0..a.length {
+		printf("%d - %d\n", i, a[i]);
 	}
-	
+
+	for i, v in a {
+		printf("%d %d\n", i, v);
+	}
+
+	for v in a {
+		printf("%d\n", v);
+	}
 
 	return 0;
 }

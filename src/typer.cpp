@@ -112,114 +112,74 @@ void Typer::type_check_statement(Expression *stmt) {
 		case Ast::FOR: {
 			For *_for = static_cast<For *>(stmt);
 
-			if (!_for->initial_iterator_expression) {
-				compiler->report_error(_for, "'for' must be followed by an variable declaration.\n");
-				return;
-			}
+			/* CASES
+			* for i in 0..10
+			* for v in array
+			* for i, v in array
+			*/
+			
+			infer_type(_for->iterator_expr);
 
-			type_check_statement(_for->initial_iterator_expression);
+			if (_for->upper_range_expr) {
+				infer_type(_for->upper_range_expr);
 
-			if (!_for->upper_range_expression) {
-				auto init_type = _for->initial_iterator_expression->type_info;
-				if (type_is_int(init_type)) {
-					compiler->report_error(_for, "'for' must specify an upper-range. Ex: for 0..1\n");
+				auto init_type = _for->iterator_expr->type_info;
+				auto upper_type = _for->upper_range_expr->type_info;
+
+				if (!type_is_int(init_type) || !type_is_int(upper_type)) {
+					compiler->report_error(_for, "'..' operator may only be surrouned by integer expression.\n");
 					return;
 				}
-			} else {
-				auto init_type = _for->initial_iterator_expression->type_info;
-				if (!type_is_int(init_type)) {
-					compiler->report_error(_for, "'..' operator may only be preceeded by an integer expression.\n");
+
+				if (_for->value_declaration) {
+					compiler->report_error(_for->value_declaration, "Value iteration not available for range");
 					return;
 				}
 
-				infer_type(_for->upper_range_expression);
+				_for->iterator_expr = check_expression_type_and_cast(_for->iterator_expr, upper_type);
+				init_type = _for->iterator_expr->type_info;
+				_for->index_declaration->type_info = init_type;
 
-				auto init_expr = _for->initial_iterator_expression;
-				auto upper_expr = _for->upper_range_expression;
-
-				auto upper_type = _for->upper_range_expression->type_info;
-
-				init_expr = check_expression_type_and_cast(init_expr, upper_expr->type_info);
-				_for->initial_iterator_expression = init_expr;
-
-				init_type = _for->initial_iterator_expression->type_info;
-				if (!type_is_int(upper_type)) {
-					compiler->report_error(_for->upper_range_expression, "'for' upper-range must be an integer expression.\n");
-					return;
-				}
+				/* @Note: do we want to set initializer here?*/
+				_for->index_declaration->initializer = _for->iterator_expr;
 
 				if (!types_match(init_type, upper_type)) {
 					compiler->report_error(_for, "'for' lower-range and upper-range types do not match!\n");
 				}
-			}
+			} else {
+				/* Not range-based for */
 
-			auto init_type = _for->initial_iterator_expression->type_info;
-			if (!type_is_int(init_type)) {
-				bool supports_iteration_interface = type_is_array(init_type);
+				if (!_for->value_declaration) {
+					_for->value_declaration = _for->index_declaration;
+					_for->index_declaration = new Declaration();
+					_for->index_declaration->identifier = make_identifier(compiler->atom_it_index);
+					_for->index_declaration->identifier->scope = _for->value_declaration->identifier->scope;
+					_for->value_declaration->identifier->scope->declarations.add(_for->index_declaration);
 
-				if (!supports_iteration_interface) {
-					compiler->report_error(_for->initial_iterator_expression, "Type of expression in 'for' condition is not iterable. Must be an integer range, a string or an array");
+					copy_location_info(_for->index_declaration, _for->value_declaration);
+				}
+
+				if (!type_is_array(_for->iterator_expr->type_info)) {
+					compiler->report_error(_for->iterator_expr, "Type of expression in 'for' condition is not iterable. Must be an integer range or an array");
 					return;
 				}
-			}
-
-			if (!type_is_int(init_type)) {
-				auto count_expr = make_member(_for->initial_iterator_expression, compiler->atom_length);
+				
+				auto count_expr = make_member(_for->iterator_expr, compiler->atom_length);
 				infer_type(count_expr);
 
+				assert(_for->upper_range_expr == 0);
+				_for->upper_range_expr = count_expr;
+
 				auto zero = make_integer_literal(0, count_expr->type_info);
-				auto it_index_ident = make_identifier(compiler->atom_it_index);
-				copy_location_info(it_index_ident, _for);
-				it_index_ident->scope = _for->iterator_declaration_scope;
-				{
-					Declaration *decl = new Declaration();
-					copy_location_info(decl, _for);
-					decl->identifier = it_index_ident;
-					copy_location_info(decl->identifier, _for);
-					decl->initializer = zero;
 
-					_for->iterator_index_decl = decl;
+				_for->index_declaration->type_info = zero->type_info;
+				_for->index_declaration->initializer = zero;
 
-					type_check_statement(_for->iterator_index_decl);
-					if (compiler->errors_reported) return;
-				}
-
-				{
-					auto indexed = make_index(_for->initial_iterator_expression, it_index_ident);
-
-					Declaration *decl = new Declaration();
-					copy_location_info(decl, _for);
-					decl->identifier = make_identifier(compiler->atom_it);
-					decl->identifier->scope = _for->iterator_declaration_scope;
-					copy_location_info(decl->identifier, decl);
-					decl->initializer = indexed;
-					decl->type_info = indexed->type_info;
-
-					_for->iterator_decl = decl;
-				}
-
-				assert(_for->upper_range_expression == nullptr);
-				_for->upper_range_expression = count_expr;
+				auto indexed = make_index(_for->iterator_expr, _for->index_declaration->identifier);
+				infer_type(indexed);
+				_for->value_declaration->type_info = indexed->type_info;
+				_for->value_declaration->initializer = indexed;
 			}
-
-			if (_for->initial_iterator_expression->type == Expression::DECLARATION) {
-				_for->iterator_decl = static_cast<Declaration *>(_for->initial_iterator_expression);
-			} else if (!_for->iterator_decl) {
-				// for integer ranges only
-				Declaration *decl = new Declaration();
-				copy_location_info(decl, _for);
-				decl->identifier = make_identifier(compiler->atom_it);
-				copy_location_info(decl->identifier, _for);
-				decl->identifier->scope = _for->iterator_declaration_scope;
-				decl->initializer = _for->initial_iterator_expression;
-
-				_for->iterator_decl = decl;
-			}
-
-			_for->iterator_declaration_scope->declarations.add(_for->iterator_decl);
-			if (_for->iterator_index_decl) _for->iterator_declaration_scope->declarations.add(_for->iterator_index_decl);
-
-			type_check_statement(_for->iterator_decl);
 
 			type_check_statement(_for->body);
 

@@ -67,6 +67,7 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 	switch (lexeme.length) {
 		case 2: {
 			if (lexeme == "if") return TK_IF;
+			else if (lexeme == "in") return TK_IN;
 			else return TK_ATOM;
 		} break;
 		case 3: {

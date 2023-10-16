@@ -496,8 +496,33 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 		next();
 
 		push_scope();
-		_for->iterator_declaration_scope = current_scope;
 
+		Identifier *first_operand = parse_identifier();
+		if (!first_operand) {
+			compiler->report_error(token_location(peek()), "Expected identifier after 'for'");
+		}
+
+		_for->index_declaration = AST_NEW(Declaration);
+		_for->index_declaration->identifier = first_operand;
+
+		current_scope->declarations.add(_for->index_declaration);
+
+		if (expect_eat(',')) {
+			Identifier *second_operand = parse_identifier();
+			if (!second_operand) {
+				compiler->report_error(token_location(peek()), "Expected identifier after ','");
+			}
+			
+			_for->value_declaration = AST_NEW(Declaration);
+			_for->value_declaration->identifier = second_operand;
+
+			current_scope->declarations.add(_for->value_declaration);
+		}
+
+		if (!expect_eat(TK_IN)) {
+			compiler->report_error(token_location(peek()), "Expected 'in' after for loop variables");
+		}
+		
 		_for->iterator_expr = parse_expression();
 
 		auto token = peek();
@@ -510,11 +535,7 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 			_for->upper_range_expr = parse_expression();
 		}
 
-		push_scope();
-
 		_for->body = parse_declaration_or_statement();
-
-		pop_scope();
 
 		pop_scope();
 

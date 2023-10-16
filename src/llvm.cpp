@@ -223,29 +223,16 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 		} break;
 		case Ast::FOR: {
 			For *_for = static_cast<For *>(expression);
-			Value *it_index_alloca;
-			Value *it_alloca;
 
-			auto it_decl = _for->iterator_decl;
-			auto decl_type = it_decl->type_info;
+			Value *index_ref, *value_ref;
+			TypeInfo *index_type = _for->index_declaration->type_info;
 
-			auto it_index_decl = _for->iterator_index_decl;
-			TypeInfo *it_index_type = 0;
+			convert_statement(_for->index_declaration);
+			index_ref = _for->index_declaration->llvm_reference;
 
-			if (it_index_decl) {
-				convert_statement(it_index_decl);
-
-				it_index_type = it_index_decl->type_info;
-				it_index_alloca = it_index_decl->llvm_reference;
-
-				convert_statement(it_decl);
-				it_alloca = it_decl->llvm_reference;
-			} else {
-				convert_statement(it_decl);
-				it_alloca = it_decl->llvm_reference;
-
-				it_index_type = decl_type;
-				it_index_alloca = it_alloca;
+			if (_for->value_declaration) {
+				convert_statement(_for->value_declaration);
+				value_ref = _for->value_declaration->llvm_reference;
 			}
 
 			auto cond_block = BasicBlock::Create(*llvm_context, "", current_function);
@@ -260,14 +247,14 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 			irb->SetInsertPoint(cond_block);
 
 			if (options->debug) {
-				debug.add_inst(_for->iterator_decl, br);
+				debug.add_inst(_for->iterator_expr, br);
 			}
 
-			auto loaded_index = load(_for, it_index_alloca);
-
-			auto upper = convert_expression(_for->upper_range_expression);
+			auto loaded_index = load(_for, index_ref);
+			
+			auto upper = convert_expression(_for->upper_range_expr);
 			Value *cond = nullptr;
-			if (it_index_type->is_signed) {
+			if (index_type->is_signed) {
 				cond = irb->CreateICmpSLT(loaded_index, upper);
 			} else {
 				cond = irb->CreateICmpULT(loaded_index, upper);
@@ -277,12 +264,12 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 			irb->SetInsertPoint(body_block);
 
 			if (options->debug) {
-				debug.add_inst(_for->iterator_decl, static_cast<Instruction *>(cond));
+				debug.add_inst(_for->iterator_expr, static_cast<Instruction *>(cond));
 				debug.add_inst(_for->body, br);
 			}
 
-			if (it_index_decl) {
-				convert_statement(it_decl);
+			if (_for->value_declaration) {
+				convert_statement(_for->value_declaration);
 			}
 
 			convert_statement(_for->body);
@@ -291,24 +278,25 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 			irb->SetInsertPoint(inc_block);
 
 			if (options->debug) {
-				debug.add_inst(_for->iterator_decl, br);
+				debug.add_inst(_for->iterator_expr, br);
 			}
 
-			loaded_index = load(_for, it_index_alloca);
+			loaded_index = load(_for, index_ref);
 			auto added = irb->CreateNSWAdd(
 				loaded_index,
-				ConstantInt::get(convert_type(it_index_type), 1)
+				ConstantInt::get(convert_type(index_type), 1)
 			);
-			store(_for, added, it_index_alloca);
+			store(_for, added, index_ref);
 			br = irb->CreateBr(cond_block);
 
 			if (options->debug) {
-				debug.add_inst(_for->iterator_decl, br);
+				debug.add_inst(_for->iterator_expr, br);
 			}
 
 			irb->SetInsertPoint(after_block);
 			continue_blocks.pop();
 			break_blocks.pop();
+
 			break;
 		}
 		case Ast::CONTINUE:

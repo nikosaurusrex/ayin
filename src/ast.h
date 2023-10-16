@@ -377,13 +377,12 @@ struct While : Expression {
 };
 
 struct For : Expression {
-	Declaration *iterator_decl = 0;
-	Declaration *iterator_index_decl = 0;
+	Expression *iterator_expr = 0;
+	Expression *upper_range_expr = 0;
+	
+	Declaration *index_declaration = 0;
+	Declaration *value_declaration = 0;
 
-	Expression *initial_iterator_expression = 0;
-	Expression *upper_range_expression = 0;
-
-	Scope *iterator_declaration_scope = 0;
 	Expression *body = 0;
 
 	For() {

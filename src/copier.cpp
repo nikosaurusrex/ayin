@@ -221,14 +221,12 @@ Expression *Copier::copy(Expression *ast) {
 			auto old = static_cast<For *>(ast);
 			auto _new = COPY_NEW(For);
 
-			_new->iterator_declaration_scope = push_scope(old->iterator_declaration_scope);
+			COPY_C(iterator_expr);
+			COPY_C(upper_range_expr);
+			COPY_C(index_declaration);
+			COPY_C(value_declaration);
+			COPY_C(body);
 
-			COPY_C(iterator_decl);
-			COPY_C(iterator_index_decl);
-			COPY_C(initial_iterator_expression);
-			COPY_C(upper_range_expression);
-
-			pop_scope();
 			return _new;
 		}
 	}
