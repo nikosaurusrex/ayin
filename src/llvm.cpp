@@ -536,10 +536,11 @@ Value *LLVM_Converter::convert_expression(Expression *expression, bool is_lvalue
 				FunctionType *fun_type = static_cast<FunctionType *>(convert_type(call->identifier->type_info));
 
 				auto loaded = load(decl, decl->llvm_reference);
-				call_inst = irb->CreateCall(loaded, ArrayRef<Value *>(arguments.data, arguments.length));
+				call_inst = irb->CreateCall(fun_type, loaded, ArrayRef<Value *>(arguments.data, arguments.length));
 			} else {
 				Function *fun = get_or_create_function(call->resolved_function);
-				call_inst = irb->CreateCall(fun, ArrayRef<Value *>(arguments.data, arguments.length));
+				FunctionType *fun_type = fun->getFunctionType();
+				call_inst = irb->CreateCall(fun_type, fun, ArrayRef<Value *>(arguments.data, arguments.length));
 			}
 
 			if (options->debug) {

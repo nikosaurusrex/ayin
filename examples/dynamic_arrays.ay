@@ -1,0 +1,16 @@
+#use "basic";
+
+func main() s32 {
+	a: [..]s32;
+
+	array_add(&a, 21);
+	array_add(&a, 561);
+	array_add(&a, 1);
+	array_add(&a, 91);
+
+	for v := a {
+		printf("%d\n".data, v);
+	}
+    
+	return 0;
+}

@@ -495,24 +495,29 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 		For *_for = AST_NEW(For);
 		next();
 
-		_for->initial_iterator_expression = parse_expression();
+		push_scope();
+		_for->iterator_declaration_scope = current_scope;
+
+		_for->iterator_expr = parse_expression();
 
 		auto token = peek();
 		if (expect_eat(TK_DOT_DOT)) {
-			if (!_for->initial_iterator_expression) {
+			if (!_for->iterator_expr) {
 				compiler->report_error(token_location(token), ".. operator must be preceeded by an expression.\n");
 				return _for;
 			}
 
-			_for->upper_range_expression = parse_expression();
+			_for->upper_range_expr = parse_expression();
 		}
 
 		push_scope();
-		_for->iterator_declaration_scope = current_scope;
 
 		_for->body = parse_declaration_or_statement();
 
 		pop_scope();
+
+		pop_scope();
+
 		return _for;
 	}
 
