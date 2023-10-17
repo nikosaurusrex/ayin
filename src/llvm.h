@@ -85,16 +85,14 @@ struct LLVMConverter {
 	llvm::Type *type_f64;
 	llvm::StructType *type_string;
 
-	Scope *current_scope = 0;
 	s32 global_constants_count = 0;
+	Scope *current_scope = 0;
 
 	LLVMConverter(Compiler *compiler);
 
 	void convert(Scope *scope);
 	void convert_scope(Scope *scope);
-
-	void enter_scope(Scope *scope);
-	void exit_scope(Scope *scope);
+	void insert_defers(Scope *from, Scope *to);
 
 	void convert_statement(Expression *expression);
 

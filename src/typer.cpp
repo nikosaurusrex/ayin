@@ -64,6 +64,7 @@ void Typer::type_check_statement(Expression *stmt) {
 		} break;
 		case AST_RETURN: {
 			Return *ret = static_cast<Return *>(stmt);
+			ret->function = current_function;
 
 			if (ret->return_value) {
 				infer_type(ret->return_value);
@@ -110,6 +111,7 @@ void Typer::type_check_statement(Expression *stmt) {
 		}
 		case AST_WHILE: {
 			While *_while = static_cast<While *>(stmt);
+			current_loop_body = _while->statement;
 
 			infer_type(_while->condition);
 			if (!is_bool(_while->condition->type_info)) {
@@ -122,6 +124,7 @@ void Typer::type_check_statement(Expression *stmt) {
 		}
 		case AST_FOR: {
 			For *_for = static_cast<For *>(stmt);
+			current_loop_body = _for->body;
 
 			infer_type(_for->iterator_expr);
 
@@ -190,9 +193,16 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			break;
 		}
-		case AST_CONTINUE:
-		case AST_BREAK:
-			break;
+		case AST_CONTINUE: {
+			Continue *_continue = (Continue *) stmt;
+
+			_continue->continue_to = current_loop_body;
+		} break;
+		case AST_BREAK: {
+			Break *_break = (Break *) stmt;
+
+			_break->break_to = current_loop_body;
+		} break;
 		default:
 			infer_type(stmt);
 			break;

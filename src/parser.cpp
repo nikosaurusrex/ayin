@@ -498,7 +498,13 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
             return _while;
         }
         
-        _while->statement = parse_declaration_or_statement();
+		auto body = parse_declaration_or_statement();
+		if (body->type != AST_SCOPE) {
+			compiler->report_error(body, "Expected block as loop body");
+			return 0;
+		}
+
+		_while->statement = (Scope *) body;
 
 		return _while;
 	}
@@ -547,7 +553,13 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 			_for->upper_range_expr = parse_expression();
 		}
 
-		_for->body = parse_declaration_or_statement();
+		auto body = parse_declaration_or_statement();
+		if (body->type != AST_SCOPE) {
+			compiler->report_error(body, "Expected block as loop body");
+			return 0;
+		}
+
+		_for->body = (Scope *) body;
 
 		pop_scope();
 
@@ -598,14 +610,14 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 	}
 
 	if (expect(TK_BREAK)) {
-		auto _continue = AST_NEW(Break);
+		auto _break = AST_NEW(Break);
 		next();
 
 		if (!expect_eat(';') && expect_semicolon) {
 			compiler->report_error(token_location(peek()), "expected ';' after 'break'");
 		}
 
-		return _continue;
+		return _break;
 	}
 
 	if (expect_eat('#')) {

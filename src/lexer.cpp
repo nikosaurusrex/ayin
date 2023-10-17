@@ -98,7 +98,7 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 			else return TK_ATOM;
 		} break;
 		case 8: {
-			if (lexeme == "CONTINUE") return TK_CONTINUE;
+			if (lexeme == "continue") return TK_CONTINUE;
 			else return TK_ATOM;
 		} break;
 		default: {

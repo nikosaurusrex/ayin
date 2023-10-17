@@ -241,6 +241,14 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
+		case AST_DEFER: {
+			auto old = static_cast<Defer *>(ast);
+			auto _new = COPY_NEW(Defer);
+
+			COPY_C(target);
+
+			return _new;
+		}
 	}
 
 	assert(0);
@@ -316,6 +324,10 @@ Scope *Copier::push_scope(Scope *old) {
 
 	for (auto expr : old->statements) {
 		_new->statements.add(copy(expr));
+	}
+	
+	for (auto expr : old->defers) {
+		_new->defers.add((Defer *) copy(expr));
 	}
 
 	return _new;

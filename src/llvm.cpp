@@ -92,20 +92,34 @@ void LLVMConverter::convert(Scope *scope) {
 }
 
 void LLVMConverter::convert_scope(Scope *scope) {
-	enter_scope(scope);
+	current_scope = scope;
 
 	for (auto stmt : scope->statements) {
 		convert_statement(stmt);
 	}
+
+	if (scope->statements.length > 0) {
+		int last = (scope->statements[scope->statements.length - 1])->type;
+		if (last != AST_CONTINUE && last != AST_BREAK && last != AST_RETURN) {
+			insert_defers(scope, scope);
+		}
+	}
+
+	current_scope = current_scope->parent;
 }
 
-void LLVMConverter::enter_scope(Scope *scope) {
-	current_scope = scope;
-}
+void LLVMConverter::insert_defers(Scope *from, Scope *to) {
+	Scope *current = from;
+	while (true) {
+		for (int i = current->defers.length - 1; i >= 0; --i) {
+			convert_statement(current->defers[i]->target);
+		}
 
-void LLVMConverter::exit_scope(Scope *scope) {
-	for (int i = scope->defers.length - 1; i >= 0; --i) {
-		convert_statement(scope->defers[i]);
+		if (current == to) {
+			break;
+		}
+
+		current = current->parent;
 	}
 }
 
@@ -132,7 +146,7 @@ void LLVMConverter::convert_statement(Expression *expression) {
 		case AST_RETURN: {
 			Return *ret = static_cast<Return *>(expression);
 
-			exit_scope(current_scope);
+			insert_defers(current_scope, ret->function->block_scope);
 
 			if (ret->return_value) {
 				Value *return_value = convert_expression(ret->return_value);
@@ -313,20 +327,30 @@ void LLVMConverter::convert_statement(Expression *expression) {
 
 			break;
 		}
-		case AST_CONTINUE:
+		case AST_CONTINUE: {
+			Continue *_continue = (Continue *) expression;
+
+			insert_defers(current_scope, _continue->continue_to);
+
 			if (continue_blocks.length > 0) {
 				irb->CreateBr(continue_blocks[continue_blocks.length - 1]);
 			} else {
 				compiler->report_error(expression, "'continue' is not in a loop");
 			}
 			break;
-		case AST_BREAK:
+		}
+		case AST_BREAK: {
+			Break *_break = (Break *) expression;
+			
+			insert_defers(current_scope, _break->break_to);
+
 			if (break_blocks.length > 0) {
 				irb->CreateBr(break_blocks[break_blocks.length - 1]);
 			} else {
 				compiler->report_error(expression, "'break' is not in a loop");
 			}
 			break;
+		}
 		default: {
 			convert_expression(expression);
 		}
@@ -956,7 +980,7 @@ void LLVMConverter::convert_function(AFunction *fun) {
 				debug.add_inst(fun, inst);
 			}
 		} else {
-			compiler->report_error(fun, "Non-void function needs a return");
+			//compiler->report_error(fun, "Non-void function needs a return");
 			return;
 		}
 	}

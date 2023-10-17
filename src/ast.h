@@ -339,6 +339,7 @@ struct Member : Expression {
 
 struct Return : Expression {
 	Expression *return_value = 0;
+	AFunction *function = 0;
 
 	Return() {
 		type = AST_RETURN;
@@ -378,7 +379,7 @@ struct If : Expression {
 
 struct While : Expression {
     Expression *condition = 0;
-    Expression *statement = 0;
+    Scope *statement = 0;
 
     While() {
     	type = AST_WHILE;
@@ -392,7 +393,7 @@ struct For : Expression {
 	Declaration *index_declaration = 0;
 	Declaration *value_declaration = 0;
 
-	Expression *body = 0;
+	Scope *body = 0;
 
 	For() {
 		type = AST_FOR;

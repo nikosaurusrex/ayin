@@ -9,6 +9,7 @@ struct Typer {
 	Compiler *compiler;	
 
 	AFunction *current_function = 0;
+	Scope *current_loop_body;
 
 	Typer(Compiler *compiler);
 
