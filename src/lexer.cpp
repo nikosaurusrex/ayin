@@ -402,6 +402,9 @@ void Lexer::read_token() {
 							type = TK_SHL;
 						}
 						eat_char();
+					} else if (peek_char(1) == '=') {
+						type = TK_LT_EQ;
+						eat_char();
 					} else {
 						type = '<';
 					}
@@ -414,6 +417,9 @@ void Lexer::read_token() {
 						} else {
 							type = TK_SHR;
 						}
+						eat_char();
+					} else if (peek_char(1) == '=') {
+						type = TK_GT_EQ;
 						eat_char();
 					} else {
 						type = '>';

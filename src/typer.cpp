@@ -190,6 +190,7 @@ void Typer::type_check_statement(Expression *stmt) {
 
 void Typer::type_check_variable_declaration(Declaration *decl) {
 	Expression *existing = find_declaration_in_scope(decl->identifier->scope, decl->identifier);
+
 	if (existing && existing != decl) {
 		compiler->report_error2(decl->identifier->location, "Identifier is already defined", existing->location, "First definition here");
 		return;

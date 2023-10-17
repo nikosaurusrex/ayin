@@ -31,6 +31,17 @@ Expression *Copier::copy(Expression *ast) {
 		}
 		case Ast::DECLARATION: {
 			auto old = static_cast<Declaration *>(ast);
+			for (auto edecl_expr : current_scope->declarations) {
+				Declaration *edecl = (Declaration *) edecl_expr;
+				if (edecl->type != Ast::DECLARATION) {
+					continue;
+				}
+
+				if (old->identifier->atom == edecl->identifier->atom) {
+					return edecl;
+				}
+			}
+
 			auto _new = COPY_NEW(Declaration);
 
 			COPY_C(identifier);
