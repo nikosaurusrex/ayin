@@ -93,7 +93,7 @@ Struct *Parser::parse_struct_declaration() {
 	}
 
 	TypeInfo *struct_type = new TypeInfo();
-	struct_type->type = TypeInfo::STRUCT;
+	struct_type->type = TYPE_STRUCT;
 	struct_type->struct_decl = s;
 
 	if (!expect_eat('{')) {
@@ -129,7 +129,7 @@ Enum *Parser::parse_enum_declaration() {
 	}
 
 	TypeInfo *enum_type = new TypeInfo();
-	enum_type->type = TypeInfo::ENUM;
+	enum_type->type = TYPE_ENUM;
 
 	if (!expect_eat('{')) {
 		compiler->report_error(token_location(peek()), "Expected '{' after enum name");
@@ -198,7 +198,7 @@ AFunction *Parser::parse_function_declaration() {
 			TypeAlias *alias = AST_NEW(TypeAlias);
 			alias->identifier = parse_identifier();
 			alias->type_info = new TypeInfo();
-			alias->type_info->type = TypeInfo::TYPE;
+			alias->type_info->type = TYPE_TYPE;
 			alias->type_info->unresolved_name = alias->identifier;
 
 			if (!alias->identifier) {
@@ -286,11 +286,11 @@ AFunction *Parser::parse_function_declaration() {
 			fn->block_scope->statements.add(statement_or_declaration);
 
 			switch (statement_or_declaration->type) {
-			case Ast::DECLARATION:
-			case Ast::STRUCT:
-			case Ast::ENUM:
-			case Ast::TYPE_ALIAS:
-			case Ast::FUNCTION:
+			case AST_DECLARATION:
+			case AST_STRUCT:
+			case AST_ENUM:
+			case AST_TYPE_ALIAS:
+			case AST_FUNCTION:
 				fn->block_scope->declarations.add(statement_or_declaration);
 				break;
 			default:
@@ -364,9 +364,9 @@ Expression *Parser::parse_directive() {
 
 	if (id_ty == TK_ATOM) {
 		if (id_td.lexeme == to_string("use")) {
-			directive->directive_type = Directive::USE;
+			directive->directive_type = DIRECTIVE_USE;
 		} else if (id_td.lexeme == to_string("include")) {
-			directive->directive_type = Directive::INCLUDE;
+			directive->directive_type = DIRECTIVE_INCLUDE;
 		}
 
 		auto token = peek();
@@ -383,7 +383,7 @@ Expression *Parser::parse_directive() {
 			return directive;
 		}
 
-		if (directive->directive_type == Directive::USE) {
+		if (directive->directive_type == DIRECTIVE_USE) {
 			directive->file = name;
 		} else {
 			const int MAX_PATH = 512;
@@ -555,11 +555,11 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 			current_scope->statements.add(statement_or_declaration);
 
 			switch (statement_or_declaration->type) {
-				case Ast::DECLARATION:
-				case Ast::STRUCT:
-				case Ast::ENUM:
-				case Ast::TYPE_ALIAS:
-				case Ast::FUNCTION:
+				case AST_DECLARATION:
+				case AST_STRUCT:
+				case AST_ENUM:
+				case AST_TYPE_ALIAS:
+				case AST_FUNCTION:
 					current_scope->declarations.add(statement_or_declaration);
 					break;
 				default:
@@ -975,7 +975,7 @@ TypeInfo *Parser::parse_type_specifier() {
 		}
 
 		type_info = new TypeInfo();
-		type_info->type = TypeInfo::POINTER;
+		type_info->type = TYPE_POINTER;
 		type_info->element_type = element_type;
 		type_info->size = 8;
 		return type_info;
@@ -1011,7 +1011,7 @@ TypeInfo *Parser::parse_type_specifier() {
 		}
 
 		type_info = new TypeInfo();
-		type_info->type = TypeInfo::ARRAY;
+		type_info->type = TYPE_ARRAY;
 		type_info->is_dynamic = dynamic;
 		type_info->array_size = arr_size; 
 		type_info->element_type = element_type;
@@ -1022,7 +1022,7 @@ TypeInfo *Parser::parse_type_specifier() {
 		next();
 
 		type_info = new TypeInfo();
-		type_info->type = TypeInfo::FUNCTION;
+		type_info->type = TYPE_FUNCTION;
 
 		while (!expect_eat(')')) {
 			TypeInfo *par_type = parse_type_specifier();
@@ -1049,7 +1049,7 @@ TypeInfo *Parser::parse_type_specifier() {
 
 	if (tt == TK_ATOM) {
 		type_info = new TypeInfo();
-		type_info->type = TypeInfo::UNRESOLVED;
+		type_info->type = TYPE_UNRESOLVED;
 		type_info->unresolved_name = parse_identifier();
 		return type_info;
 	}

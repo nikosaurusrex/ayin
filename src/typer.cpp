@@ -20,17 +20,17 @@ void Typer::type_check_statement(Expression *stmt) {
 	if (!stmt) return;
 
 	switch (stmt->type) {
-		case Ast::DECLARATION: {
+		case AST_DECLARATION: {
 			auto var_decl = static_cast<Declaration *>(stmt);
 			type_check_variable_declaration(var_decl);
 		} break;
-		case Ast::TYPE_ALIAS: {
+		case AST_TYPE_ALIAS: {
 			break;
 		}
-		case Ast::ENUM: {
+		case AST_ENUM: {
 			break;
 		}
-		case Ast::FUNCTION: {
+		case AST_FUNCTION: {
 			auto fun = static_cast<AFunction *>(stmt);
 
 			if ((fun->flags & FUNCTION_FOREIGN) && (fun->flags & FUNCTION_TEMPLATE)) {
@@ -48,7 +48,7 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			type_check_function(fun);
 		} break;
-		case Ast::STRUCT: {
+		case AST_STRUCT: {
 			auto strct = static_cast<Struct *>(stmt);
 
 			int i = 0;
@@ -58,7 +58,7 @@ void Typer::type_check_statement(Expression *stmt) {
 				i++;
 			}
 		} break;
-		case Ast::RETURN: {
+		case AST_RETURN: {
 			Return *ret = static_cast<Return *>(stmt);
 
 			if (ret->return_value) {
@@ -72,23 +72,23 @@ void Typer::type_check_statement(Expression *stmt) {
 					compiler->report_error(ret, "Type of return value (%.*s) and return type of function (%.*s) do not match", ret_val_ty_str.length, ret_val_ty_str.data, ret_ty_str.length, ret_ty_str.data);
 				}
 
-			} else if (current_function->return_type->type != TypeInfo::VOID_TYPE) {
+			} else if (current_function->return_type->type != TYPE_VOID_TYPE) {
 				compiler->report_error(ret, "Tried to return no value from non-void function");
 			}
 			break;
 		}
-		case Ast::SCOPE: {
+		case AST_SCOPE: {
 			Scope *scope = static_cast<Scope *>(stmt);
 
 			type_check_scope(scope);
 
 			break;
 		}
-		case Ast::IF: {
+		case AST_IF: {
 			If *_if = static_cast<If *>(stmt);
 
 			infer_type(_if->condition);
-			if (!type_is_bool(_if->condition->type_info)) {
+			if (!is_bool(_if->condition->type_info)) {
 				_if->condition = make_compare_zero(_if->condition);
 			}
 
@@ -97,11 +97,11 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			break;
 		}
-		case Ast::WHILE: {
+		case AST_WHILE: {
 			While *_while = static_cast<While *>(stmt);
 
 			infer_type(_while->condition);
-			if (!type_is_bool(_while->condition->type_info)) {
+			if (!is_bool(_while->condition->type_info)) {
 				_while->condition = make_compare_zero(_while->condition);
 			}
 
@@ -109,7 +109,7 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			break;
 		}
-		case Ast::FOR: {
+		case AST_FOR: {
 			For *_for = static_cast<For *>(stmt);
 
 			infer_type(_for->iterator_expr);
@@ -120,7 +120,7 @@ void Typer::type_check_statement(Expression *stmt) {
 				auto init_type = _for->iterator_expr->type_info;
 				auto upper_type = _for->upper_range_expr->type_info;
 
-				if (!type_is_int(init_type) || !type_is_int(upper_type)) {
+				if (!is_int(init_type) || !is_int(upper_type)) {
 					compiler->report_error(_for, "'..' operator may only be surrouned by integer expression.\n");
 					return;
 				}
@@ -153,7 +153,7 @@ void Typer::type_check_statement(Expression *stmt) {
 					copy_location_info(_for->index_declaration, _for->value_declaration);
 				}
 
-				if (!type_is_array(_for->iterator_expr->type_info)) {
+				if (!is_array(_for->iterator_expr->type_info)) {
 					compiler->report_error(_for->iterator_expr, "Type of expression in 'for' condition is not iterable. Must be an integer range or an array");
 					return;
 				}
@@ -179,8 +179,8 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			break;
 		}
-		case Ast::CONTINUE:
-		case Ast::BREAK:
+		case AST_CONTINUE:
+		case AST_BREAK:
 			break;
 		default:
 			infer_type(stmt);
@@ -221,7 +221,7 @@ void Typer::resolve_function_type(AFunction *function) {
 	if (function->type_info) return;
 
 	TypeInfo *func_type = new TypeInfo();
-	func_type->type = TypeInfo::FUNCTION;
+	func_type->type = TYPE_FUNCTION;
 
 	for (auto par : function->parameter_scope->declarations) {
 		type_check_variable_declaration(static_cast<Declaration *>(par));
@@ -256,11 +256,11 @@ void Typer::infer_type(Expression *expression) {
 	if (expression->type_info) return;
 
 	switch (expression->type) {
-	case Expression::DECLARATION: {
+	case AST_DECLARATION: {
 		auto var_decl = static_cast<Declaration *>(expression);
 		type_check_variable_declaration(var_decl);
 	} break;
-	case Expression::LITERAL: {
+	case AST_LITERAL: {
 		Literal *lit = static_cast<Literal *>(expression);
 		switch (lit->literal_type) {
 		case Literal::BOOL:
@@ -284,7 +284,7 @@ void Typer::infer_type(Expression *expression) {
 			resolve_type_force(&lit->type_info);
 			TypeInfo *ty = lit->type_info;
 
-			if (type_is_struct(ty)) {
+			if (is_struct(ty)) {
 				if (lit->values.length != ty->struct_members.length) {
 					compiler->report_error(lit, "Compound literal does not match struct type");
 				}
@@ -296,7 +296,7 @@ void Typer::infer_type(Expression *expression) {
 						compiler->report_error(lit->values[i], "Compound literal does not match struct type");
 					}
 				}
-			} else if (type_is_array(ty)) {
+			} else if (is_array(ty)) {
 				auto arr_type = ty->element_type;
 
 				if (!ty->is_dynamic) {
@@ -322,7 +322,7 @@ void Typer::infer_type(Expression *expression) {
 		} break;
 		}
 	} break;
-	case Expression::IDENTIFIER: {
+	case AST_IDENTIFIER: {
 		Identifier *id = static_cast<Identifier *>(expression);
 		Expression *decl = find_declaration_by_id(id);
 
@@ -331,7 +331,7 @@ void Typer::infer_type(Expression *expression) {
 			return;
 		}
 
-		if (decl->type == Expression::FUNCTION) {
+		if (decl->type == AST_FUNCTION) {
 			resolve_function_type(static_cast<AFunction *>(decl));
 			id->type_info = decl->type_info;
 		} else {
@@ -343,7 +343,7 @@ void Typer::infer_type(Expression *expression) {
 			id->type_info = decl->type_info;
 		}
 	} break;
-	case Expression::CAST: {
+	case AST_CAST: {
 		Cast *cast = static_cast<Cast *>(expression);
 		infer_type(cast->expression);
 
@@ -357,7 +357,7 @@ void Typer::infer_type(Expression *expression) {
 
 		resolve_type_force(&cast->type_info);
 	} break;
-	case Ast::CALL: {
+	case AST_CALL: {
 		Call *call = static_cast<Call *>(expression);
 		/* TODO: search for mangeled name instead */
 		Expression *decl = find_declaration_by_id(call->identifier);
@@ -369,7 +369,7 @@ void Typer::infer_type(Expression *expression) {
 
 		AFunction *function;
 
-		if (decl->type == Ast::FUNCTION) {
+		if (decl->type == AST_FUNCTION) {
 			function = static_cast<AFunction *>(decl);
 			resolve_function_type(function);
 		} else {
@@ -377,7 +377,7 @@ void Typer::infer_type(Expression *expression) {
 
 			auto cit = call->identifier->type_info;
 
-			if (type_is_function(cit)) {
+			if (is_function(cit)) {
 				call->by_function_pointer = true;
 			} else {
 				compiler->report_error(call->identifier, "Symbol is not a function");
@@ -413,7 +413,7 @@ void Typer::infer_type(Expression *expression) {
 			}
 		}
 	} break;
-	case Expression::BINARY: {
+	case AST_BINARY: {
 		Binary *binary = static_cast<Binary *>(expression);
 		infer_type(binary->lhs);
 		infer_type(binary->rhs);
@@ -429,11 +429,11 @@ void Typer::infer_type(Expression *expression) {
 		if (binop_is_logical(binary->op)) {
 			eval_type = compiler->type_bool;
 
-			if (!type_is_bool(lhs_type)) {
+			if (!is_bool(lhs_type)) {
 				binary->lhs = make_compare_zero(binary->lhs);
 			}
 
-			if (!type_is_bool(rhs_type)) {
+			if (!is_bool(rhs_type)) {
 				binary->rhs = make_compare_zero(binary->rhs);
 			}
 		}
@@ -443,11 +443,11 @@ void Typer::infer_type(Expression *expression) {
 				compiler->report_error(binary, "Can't assign value to this expression");
 			}
 
-			if (binary->lhs->type == Expression::IDENTIFIER) {
+			if (binary->lhs->type == AST_IDENTIFIER) {
 				Identifier *id = static_cast<Identifier *>(binary->lhs);
 				Expression *var_expr = find_declaration_by_id(id);
 
-				if (var_expr->type != Ast::DECLARATION) {
+				if (var_expr->type != AST_DECLARATION) {
 					compiler->report_error(id, "Expected name of variable - not of struct or function");
 					return;
 				}
@@ -460,11 +460,11 @@ void Typer::infer_type(Expression *expression) {
 		}
 
 		if (binop_is_binary(binary->op)) {
-			if (!(type_is_pointer(lhs_type) && type_is_int(rhs_type)) &&
-				(!type_is_int(lhs_type) && !type_is_int(rhs_type)) &&
-				(!type_is_float(lhs_type) && !type_is_float(rhs_type))) {
+			if (!(is_pointer(lhs_type) && is_int(rhs_type)) &&
+				(!is_int(lhs_type) && !is_int(rhs_type)) &&
+				(!is_float(lhs_type) && !is_float(rhs_type))) {
 				/* TODO: check whether this if even makes sense */
-				if (type_is_pointer(lhs_type) && (binary->op != '+' && binary->op != '-')) {
+				if (is_pointer(lhs_type) && (binary->op != '+' && binary->op != '-')) {
 					compiler->report_error(binary, "Illegal binary operator for pointer type");
 				}
 				compiler->report_error(binary, "Illegal type for binary expression");
@@ -483,7 +483,7 @@ void Typer::infer_type(Expression *expression) {
 
 		binary->type_info = eval_type;
 	} break;
-	case Expression::UNARY: {
+	case AST_UNARY: {
 		Unary *unary = static_cast<Unary *>(expression);
 		infer_type(unary->target);
 
@@ -492,19 +492,19 @@ void Typer::infer_type(Expression *expression) {
 		switch (unary->op) {
 		case TK_PLUS_PLUS:
 		case TK_MINUS_MINUS:
-			if (!type_is_int(target_type)) {
+			if (!is_int(target_type)) {
 				compiler->report_error(unary, "Can't use ++ or -- on non-integer expression");
 				break;
 			}
 			break;
 		case '!':
-			if (!type_is_bool(target_type)) {
+			if (!is_bool(target_type)) {
 				unary->target = make_compare_zero(unary->target);
 			}
 			target_type = compiler->type_bool;
 			break;
 		case '*': {
-			if (!type_is_pointer(target_type)) {
+			if (!is_pointer(target_type)) {
 				compiler->report_error(unary->target, "Can't dereference non variable");
 				break;
 			}
@@ -519,7 +519,7 @@ void Typer::infer_type(Expression *expression) {
 
 			TypeInfo *new_ty = new TypeInfo();
 
-			new_ty->type = TypeInfo::POINTER;
+			new_ty->type = TYPE_POINTER;
 			new_ty->element_type = target_type;
 
 			target_type = new_ty;
@@ -528,13 +528,13 @@ void Typer::infer_type(Expression *expression) {
 
 		unary->type_info = target_type;
 	} break;
-	case Expression::SIZEOF: {
+	case AST_SIZEOF: {
 		Sizeof *size = static_cast<Sizeof *>(expression);
 		size->type_info = compiler->type_s32;
 
 		resolve_type_force(&size->target_type);
 	} break;
-	case Expression::INDEX: {
+	case AST_INDEX: {
 		Index *index = static_cast<Index *>(expression);
 
 		infer_type(index->expression);
@@ -542,28 +542,28 @@ void Typer::infer_type(Expression *expression) {
 
 		auto expr_type = index->expression->type_info;
 
-		if (!type_is_array(expr_type) && !type_is_string(expr_type) && !type_is_pointer(expr_type)) {
+		if (!is_array(expr_type) && !is_string(expr_type) && !is_pointer(expr_type)) {
 			compiler->report_error(index->index, "Cannot index dereference type that is not a string, array or pointer");
 			break;
 		}
 
-		if (!type_is_int(index->index->type_info)) {
+		if (!is_int(index->index->type_info)) {
 			compiler->report_error(index->index, "Expected an integer type as index to array");
 			break;
 		}
 
-		if (type_is_string(expr_type)) {
+		if (is_string(expr_type)) {
 			index->type_info = compiler->type_u8;
 		} else {
 			index->type_info = expr_type->element_type;
 		}
 	} break;
-	case Expression::MEMBER: {
+	case AST_MEMBER: {
 		Member *member = static_cast<Member *>(expression);
 
 		infer_type(member->left);
 
-		if (type_is_pointer(member->left->type_info)) {
+		if (is_pointer(member->left->type_info)) {
 			auto un = new Unary();
 			un->op = '*';
 			un->target = member->left;
@@ -577,7 +577,7 @@ void Typer::infer_type(Expression *expression) {
 		Atom *field_atom = member->field->atom;
 		TypeInfo *left_type = member->left->type_info;
 
-		if (type_is_array(left_type)) {
+		if (is_array(left_type)) {
 			if (left_type->array_size == -1) {
 				if (field_atom == compiler->atom_data) {
 					member->field_index = 0;
@@ -620,7 +620,7 @@ void Typer::infer_type(Expression *expression) {
 					compiler->report_error(member, "No member '%.*s' in known-size array.\n", field_name.length, field_name.data);
 				}
 			}
-		} else if (type_is_struct(left_type)) {
+		} else if (is_struct(left_type)) {
 			bool found = false;
 			auto strct = left_type->struct_decl;
 			int index = 0;
@@ -641,7 +641,7 @@ void Typer::infer_type(Expression *expression) {
 				String name = left_type->struct_decl->identifier->atom->id;
 				compiler->report_error(member, "No member '%.*s' in struct %.*s.\n", field_name.length, field_name.data, name.length, name.data);
 			}
-		} else if (type_is_string(left_type)) {
+		} else if (is_string(left_type)) {
 			if (field_atom == compiler->atom_data) {
 				member->field_index = 0;
 				member->type_info = compiler->type_string_data;
@@ -652,7 +652,7 @@ void Typer::infer_type(Expression *expression) {
 				String field_name = field_atom->id;
 				compiler->report_error(member, "No member '%.*s' in type string.\n", field_name.length, field_name.data);
 			}
-		} else if (type_is_enum(left_type)) {
+		} else if (is_enum(left_type)) {
 			bool found = false;
 			for (auto enum_mem : left_type->enum_members) {
 				if (field_atom == enum_mem.name) {
@@ -691,11 +691,11 @@ void Typer::infer_type(Expression *expression) {
 * (mainly user defined types such as structs)
 */
 TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
-	if (type_is_pointer(type_info) || type_is_array(type_info)) {
+	if (is_pointer(type_info) || is_array(type_info)) {
 		TypeInfo *current = type_info;
 
-		while (type_is_pointer(current) || type_is_array(current)) {
-			if (current->element_type->type != TypeInfo::UNRESOLVED) {
+		while (is_pointer(current) || is_array(current)) {
+			if (current->element_type->type != TYPE_UNRESOLVED) {
 				current = current->element_type;
 				continue;
 			}
@@ -706,7 +706,7 @@ TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
 		return type_info;
 	}
 
-	if (type_is_function(type_info)) {
+	if (is_function(type_info)) {
 		for (int i = 0; i < type_info->parameters.length; ++i) {
 			resolve_type_force(&type_info->parameters[i]);
 		}
@@ -715,7 +715,7 @@ TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
 		return type_info;
 	}
 
-	if (type_info->type != TypeInfo::UNRESOLVED) return type_info;
+	if (type_info->type != TYPE_UNRESOLVED) return type_info;
 
 	Expression *decl = find_declaration_by_id(type_info->unresolved_name);
 	if (!decl) {
@@ -723,7 +723,7 @@ TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
 	}
 
 	switch (decl->type) {
-	case Ast::STRUCT: {
+	case AST_STRUCT: {
 		auto strct = static_cast<Struct *>(decl);
 
 		TypeInfo *struct_type = strct->type_info;
@@ -731,7 +731,7 @@ TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
 
 		return struct_type;
 	} break;
-	case Ast::TYPE_ALIAS: {
+	case AST_TYPE_ALIAS: {
 		auto ta = static_cast<TypeAlias *>(decl);
 		if (ta->type_info) {
 			resolve_type_force(&ta->type_info);
@@ -739,13 +739,13 @@ TypeInfo *Typer::resolve_type_info(TypeInfo *type_info) {
 		}
 		return 0;
 	} break;
-	case Ast::DECLARATION: {
+	case AST_DECLARATION: {
 		compiler->report_error(type_info->unresolved_name, "Illegal type specifier: variable");
 	} break;
-	case Ast::FUNCTION: {
+	case AST_FUNCTION: {
 		compiler->report_error(type_info->unresolved_name, "Illegal type specifier: function");
 	} break;
-	case Ast::ENUM: {
+	case AST_ENUM: {
 		compiler->report_error(type_info->unresolved_name, "Illegal type specifier: enum");
 	} break;
 	}
@@ -832,15 +832,15 @@ Expression *Typer::check_expression_type_and_cast(Expression *expression, TypeIn
 	Expression *maybe_casted = expression;
 
 	if (!types_match(ltype, rtype)) {
-		if (type_is_int(ltype) && type_is_int(rtype)) {
+		if (is_int(ltype) && is_int(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_float(ltype) && type_is_float(rtype)) {
+		} else if (is_float(ltype) && is_float(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_float(ltype) && type_is_int(rtype)) {
+		} else if (is_float(ltype) && is_int(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_int(ltype) && type_is_float(rtype) && rtype->auto_cast) {
+		} else if (is_int(ltype) && is_float(rtype) && rtype->auto_cast) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_pointer(ltype) && type_is_pointer(rtype)) {
+		} else if (is_pointer(ltype) && is_pointer(rtype)) {
 			if (type_points_to_void(ltype) || type_points_to_void(rtype)) {
 				auto llevel = get_pointer_level(ltype);
 				auto rlevel = get_pointer_level(rtype);  
@@ -851,16 +851,16 @@ Expression *Typer::check_expression_type_and_cast(Expression *expression, TypeIn
 			} else if (rtype->auto_cast) {
 				maybe_casted = make_cast(maybe_casted, ltype);
 			}
-		} else if (type_is_function(ltype) && type_is_pointer(rtype)) {
+		} else if (is_function(ltype) && is_pointer(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_int(ltype) && type_is_bool(rtype)) {
+		} else if (is_int(ltype) && is_bool(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (type_is_bool(ltype) && type_is_int(rtype)) {
+		} else if (is_bool(ltype) && is_int(rtype)) {
 			maybe_casted = make_cast(maybe_casted, ltype);
-		} else if (types_match(ltype, compiler->type_string_data) && type_is_string(rtype)) {
+		} else if (types_match(ltype, compiler->type_string_data) && is_string(rtype)) {
 			maybe_casted = make_member(maybe_casted, compiler->atom_data);
 			infer_type(maybe_casted);
-		} else if (type_is_array(ltype) && type_is_array(rtype)) {
+		} else if (is_array(ltype) && is_array(rtype)) {
 			if (types_match(ltype->element_type, rtype->element_type) && !ltype->is_dynamic && !rtype->is_dynamic && ltype->array_size == -1) {
 				maybe_casted = make_cast(maybe_casted, ltype);
 			}
@@ -931,16 +931,16 @@ void resolve_polymorph_types(AFunction *poly, TypeInfo **type_info) {
 	TypeInfo **par_to_set = 0;
 		
 	TypeInfo *current = *type_info;
-	if (type_is_pointer(current) || type_is_array(current)) {
-		while (type_is_pointer(current) || type_is_array(current)) {
-			if (current->element_type->type == TypeInfo::TYPE) {
+	if (is_pointer(current) || is_array(current)) {
+		while (is_pointer(current) || is_array(current)) {
+			if (current->element_type->type == TYPE_TYPE) {
 				par_to_set = &current->element_type;
 				break;
 			}
 
 			current = current->element_type;
 		}
-	} else if (current->type == TypeInfo::TYPE) {
+	} else if (current->type == TYPE_TYPE) {
 		par_to_set = type_info;
 	}
 
@@ -988,7 +988,7 @@ AFunction *Typer::make_polymorph_function(AFunction *template_function, Array<Ex
 	/* find bug where this triggers even though it shouldnt. For example calling array_reserve from array_add */
 	for (auto decl : poly->template_scope->declarations) {
 		auto alias = static_cast<TypeAlias *>(decl);
-		if (alias->type_info->type == TypeInfo::TYPE) {
+		if (alias->type_info->type == TYPE_TYPE) {
 			auto name = alias->identifier->atom->id;
 
 			compiler->report_error(alias, "Failed to fill out type '%.*s'", name.length, name.data);
@@ -1013,17 +1013,17 @@ AFunction *Typer::make_polymorph_function(AFunction *template_function, Array<Ex
 *		otherwise -> fill in type with argument type
 */
 bool Typer::can_fill_polymorph(TypeInfo *par_type, TypeInfo *arg_type) {
-	if (par_type->type == TypeInfo::POINTER) {
-		if (arg_type->type != TypeInfo::POINTER) return false;
+	if (par_type->type == TYPE_POINTER) {
+		if (arg_type->type != TYPE_POINTER) return false;
 
 		return can_fill_polymorph(par_type->element_type, arg_type->element_type);
 	}
 
-	if (type_is_primitive(par_type)) {
+	if (is_primitive(par_type)) {
 		return types_match(par_type, arg_type);
 	}
 
-	if (par_type->type == TypeInfo::TYPE) {
+	if (par_type->type == TYPE_TYPE) {
 		auto decl = find_declaration_by_id(par_type->unresolved_name);
 		if (!decl) {
 			compiler->report_error(par_type->unresolved_name, "Undeclared identifier.\n");
@@ -1032,15 +1032,15 @@ bool Typer::can_fill_polymorph(TypeInfo *par_type, TypeInfo *arg_type) {
 
 		if (compiler->errors_reported) return false;
 
-		if (decl->type == Ast::TYPE_ALIAS) {
+		if (decl->type == AST_TYPE_ALIAS) {
 			auto alias = static_cast<TypeAlias *>(decl);
-			if (alias->type_info->type == TypeInfo::TYPE) {
+			if (alias->type_info->type == TYPE_TYPE) {
 				alias->type_info = arg_type;
 				return true;
 			} else {
 				return types_match(alias->type_info, arg_type);
 			}
-		} else if (decl->type == Ast::STRUCT) {
+		} else if (decl->type == AST_STRUCT) {
 			auto _struct = static_cast<Struct *>(decl);
 			return types_match(par_type, arg_type);
 		} else {
@@ -1048,8 +1048,8 @@ bool Typer::can_fill_polymorph(TypeInfo *par_type, TypeInfo *arg_type) {
 		}
 	}
 
-	if (par_type->type == TypeInfo::ARRAY) {
-		if (arg_type->type != TypeInfo::ARRAY) return false;
+	if (par_type->type == TYPE_ARRAY) {
+		if (arg_type->type != TYPE_ARRAY) return false;
 
 		bool success = can_fill_polymorph(par_type->element_type, arg_type->element_type);
 		if (compiler->errors_reported) return false;
@@ -1064,21 +1064,21 @@ bool Typer::can_fill_polymorph(TypeInfo *par_type, TypeInfo *arg_type) {
 bool Typer::types_match(TypeInfo *t1, TypeInfo *t2) {
 	if (t1->type != t2->type) return false;
 
-	if (t1->type == TypeInfo::POINTER) {
+	if (t1->type == TYPE_POINTER) {
 		return types_match(t1->element_type, t2->element_type);
 	}
 
-	if (t1->type == TypeInfo::STRUCT) {
+	if (t1->type == TYPE_STRUCT) {
 		return t1->struct_decl == t2->struct_decl;
 	}
 
-	if (t1->type == TypeInfo::ARRAY) {
+	if (t1->type == TYPE_ARRAY) {
 		return types_match(t1->element_type, t2->element_type) &&
 			t1->array_size == t2->array_size &&
 			t1->is_dynamic == t2->is_dynamic;
 	}
 
-	if (t1->type == TypeInfo::FUNCTION) {
+	if (t1->type == TYPE_FUNCTION) {
 		if (!types_match(t1->return_type, t2->return_type)) return false;
 		if (t1->parameters.length != t2->parameters.length) return false;
 
@@ -1105,7 +1105,7 @@ s32 Typer::get_pointer_level(TypeInfo *type_info) {
 	s32 count = 0;
 
 	while (type_info) {
-		if (type_info->type == TypeInfo::POINTER) {
+		if (type_info->type == TYPE_POINTER) {
 			type_info = type_info->element_type;
 			count++;
 		} else {
@@ -1122,10 +1122,10 @@ s32 Typer::get_pointer_level(TypeInfo *type_info) {
 */
 bool Typer::type_points_to_void(TypeInfo *type_info) {
 	while (type_info) {
-		if (type_info->type == TypeInfo::POINTER) {
+		if (type_info->type == TYPE_POINTER) {
 			type_info = type_info->element_type;
 		} else {
-			return type_info->type == TypeInfo::VOID_TYPE;
+			return type_info->type == TYPE_VOID_TYPE;
 		}
 	}
 
@@ -1177,37 +1177,37 @@ String Typer::mangle_name(AFunction *decl) {
 */
 void Typer::mangle_type(StringBuilder *builder, TypeInfo *type) {
 	switch (type->type) {
-	case TypeInfo::POINTER: {
+	case TYPE_POINTER: {
 		builder->putchar('p');
 		mangle_type(builder, type->element_type);
 	} break;
-	case TypeInfo::VOID_TYPE: {
+	case TYPE_VOID_TYPE: {
 		builder->putchar('v');
 	} break;
-	case TypeInfo::BOOL: {
+	case TYPE_BOOL: {
 		builder->putchar('b');
 	} break;
-	case TypeInfo::INT: {
+	case TYPE_INT: {
 		if (type->is_signed) builder->putchar('s');
 		else builder->putchar('u');
 
 		builder->print("%d", type->size * 8);
 	} break;
-	case TypeInfo::FLOAT: {
+	case TYPE_FLOAT: {
 		builder->putchar('f');
 		builder->print("%d", type->size * 8);
 	} break;
-	case TypeInfo::STRING: {
+	case TYPE_STRING: {
 		builder->putchar('s');
 	} break;
-	case TypeInfo::STRUCT: {
+	case TYPE_STRUCT: {
 		builder->putchar('S');
 
 		for (auto mem : type->struct_members) {
 			mangle_type(builder, mem);
 		}
 	} break;
-	case TypeInfo::FUNCTION: {
+	case TYPE_FUNCTION: {
 		builder->putchar('F');
 		mangle_type(builder, type->return_type);
 
@@ -1216,7 +1216,7 @@ void Typer::mangle_type(StringBuilder *builder, TypeInfo *type) {
 			mangle_type(builder, par);
 		}
 	} break;
-	case TypeInfo::ARRAY: {
+	case TYPE_ARRAY: {
 		builder->putchar('A');
 
 		if (type->array_size >= 0) {
@@ -1256,19 +1256,19 @@ Expression *Typer::make_compare_zero(Expression *target) {
 	lit->type_info = target_type;
 
 	switch (target_type->type) {
-	case TypeInfo::INT:
+	case TYPE_INT:
 		lit->literal_type = Literal::INT;
 		lit->int_value = 0;
 		break;
-	case TypeInfo::FLOAT:
+	case TYPE_FLOAT:
 		lit->literal_type = Literal::FLOAT;
 		lit->float_value = 0.0;
 		break;
-	case TypeInfo::BOOL:
+	case TYPE_BOOL:
 		lit->literal_type = Literal::BOOL;
 		lit->int_value = 0;
 		break;
-	case TypeInfo::POINTER:
+	case TYPE_POINTER:
 		lit->literal_type = Literal::NIL;
 		break;
 	default:
@@ -1289,27 +1289,27 @@ Expression *Typer::find_declaration_in_scope(Scope *scope, Identifier *id) {
 
 	for (auto decl : scope->declarations) {
 		switch (decl->type) {
-		case Ast::STRUCT: {
+		case AST_STRUCT: {
 			auto strct = static_cast<Struct *>(decl);
 			if (strct->identifier->atom == name)
 				return decl;
 		} break;
-		case Ast::TYPE_ALIAS: {
+		case AST_TYPE_ALIAS: {
 			auto ta = static_cast<TypeAlias *>(decl);
 			if (ta->identifier->atom == name)
 				return decl;
 		} break;
-		case Ast::DECLARATION: {
+		case AST_DECLARATION: {
 			auto var_decl = static_cast<Declaration *>(decl);
 			if (var_decl->identifier->atom == name)
 				return decl;
 		} break;
-		case Ast::FUNCTION: {
+		case AST_FUNCTION: {
 			auto fun = static_cast<AFunction *>(decl);
 			if (fun->identifier->atom == name)
 				return decl;
 		} break;
-		case Ast::ENUM: {
+		case AST_ENUM: {
 			auto e = static_cast<Enum *>(decl);
 			if (e->identifier->atom == name)
 				return decl;
@@ -1356,9 +1356,9 @@ Index *Typer::make_index(Expression *array, Expression *index) {
 
 bool expr_is_targatable(Expression *expression) {
 	switch (expression->type) {
-	case Expression::IDENTIFIER:
-	case Expression::MEMBER:
-	case Expression::INDEX:
+	case AST_IDENTIFIER:
+	case AST_MEMBER:
+	case AST_INDEX:
 		return true;
 	default:
 		return false;

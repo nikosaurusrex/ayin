@@ -21,7 +21,7 @@ Expression *Copier::copy(Expression *ast) {
 	if (!ast) return 0;
 
 	switch (ast->type) {
-		case Ast::SCOPE: {
+		case AST_SCOPE: {
 			auto old = static_cast<Scope *>(ast);
 			auto _new = push_scope(old);
 
@@ -29,11 +29,11 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::DECLARATION: {
+		case AST_DECLARATION: {
 			auto old = static_cast<Declaration *>(ast);
 			for (auto edecl_expr : current_scope->declarations) {
 				Declaration *edecl = (Declaration *) edecl_expr;
-				if (edecl->type != Ast::DECLARATION) {
+				if (edecl->type != AST_DECLARATION) {
 					continue;
 				}
 
@@ -50,12 +50,12 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::FUNCTION: {
+		case AST_FUNCTION: {
 			auto old = static_cast<AFunction *>(ast);
 
 			return copy_function(old);
 		}
-		case Ast::STRUCT: {
+		case AST_STRUCT: {
 			auto old = static_cast<Struct *>(ast);
 			auto _new = COPY_NEW(Struct);
 
@@ -64,7 +64,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::ENUM: {
+		case AST_ENUM: {
 			auto old = static_cast<Enum *>(ast);
 			auto _new = COPY_NEW(Enum);
 
@@ -72,7 +72,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::TYPE_ALIAS: {
+		case AST_TYPE_ALIAS: {
 			auto old = static_cast<TypeAlias *>(ast);
 			auto _new = COPY_NEW(TypeAlias);
 
@@ -80,7 +80,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::IDENTIFIER: {
+		case AST_IDENTIFIER: {
 			auto old = static_cast<Identifier *>(ast);
 			auto _new = COPY_NEW(Identifier);
 
@@ -89,7 +89,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::LITERAL: {
+		case AST_LITERAL: {
 			auto old = static_cast<Literal *>(ast);
 			auto _new = COPY_NEW(Literal);
 
@@ -100,7 +100,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::CAST: {
+		case AST_CAST: {
 			auto old = static_cast<Cast *>(ast);
 			auto _new = COPY_NEW(Cast);
 
@@ -109,7 +109,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::RETURN: {
+		case AST_RETURN: {
 			auto old = static_cast<Return *>(ast);
 			auto _new = COPY_NEW(Return);
 
@@ -117,7 +117,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::CALL: {
+		case AST_CALL: {
 			auto old = static_cast<Call *>(ast);
 			auto _new = COPY_NEW(Call);
 
@@ -132,7 +132,7 @@ Expression *Copier::copy(Expression *ast) {
 				return _new;
 			}
 
-			if (decl->type != Ast::FUNCTION) {
+			if (decl->type != AST_FUNCTION) {
 				compiler->report_error(_new->identifier, "Symbol is not a function");
 				return _new;
 			}
@@ -142,7 +142,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::BINARY: {
+		case AST_BINARY: {
 			auto old = static_cast<Binary *>(ast);
 			auto _new = COPY_NEW(Binary);
 
@@ -152,7 +152,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::UNARY: {
+		case AST_UNARY: {
 			auto old = static_cast<Unary *>(ast);
 			auto _new = COPY_NEW(Unary);
 
@@ -162,7 +162,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::SIZEOF: {
+		case AST_SIZEOF: {
 			auto old = static_cast<Sizeof *>(ast);
 			auto _new = COPY_NEW(Sizeof);
 
@@ -170,7 +170,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::IF: {
+		case AST_IF: {
 			auto old = static_cast<If *>(ast);
 			auto _new = COPY_NEW(If);
 
@@ -180,7 +180,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::WHILE: {
+		case AST_WHILE: {
 			auto old = static_cast<While *>(ast);
 			auto _new = COPY_NEW(While);
 
@@ -189,7 +189,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::INDEX: {
+		case AST_INDEX: {
 			auto old = static_cast<Index *>(ast);
 			auto _new = COPY_NEW(Index);
 
@@ -198,7 +198,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::MEMBER: {
+		case AST_MEMBER: {
 			auto old = static_cast<Member *>(ast);
 			auto _new = COPY_NEW(Member);
 
@@ -208,19 +208,19 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::CONTINUE: {
+		case AST_CONTINUE: {
 			auto old = static_cast<Continue *>(ast);
 			auto _new = COPY_NEW(Continue);
 
 			return _new;
 		}
-		case Ast::BREAK: {
+		case AST_BREAK: {
 			auto old = static_cast<Break *>(ast);
 			auto _new = COPY_NEW(Break);
 
 			return _new;
 		}
-		case Ast::DIRECTIVE: {
+		case AST_DIRECTIVE: {
 			auto old = static_cast<Directive *>(ast);
 			auto _new = COPY_NEW(Directive);
 
@@ -229,7 +229,7 @@ Expression *Copier::copy(Expression *ast) {
 
 			return _new;
 		}
-		case Ast::FOR: {
+		case AST_FOR: {
 			auto old = static_cast<For *>(ast);
 			auto _new = COPY_NEW(For);
 

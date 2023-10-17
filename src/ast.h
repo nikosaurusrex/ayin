@@ -40,34 +40,34 @@ struct Break;
 
 struct Return;
 
-struct Ast {
-	enum Type : u32 {
-		SCOPE = 0,
-		DECLARATION = 1,
-		FUNCTION = 2,
-		STRUCT = 3,
-		ENUM = 4,
-		TYPE_ALIAS = 5,
-		IDENTIFIER = 6,
-		LITERAL = 7,
-		CAST = 8,
-		RETURN = 9,
-		CALL = 10,
-		BINARY = 11,
-		UNARY = 12,
-		SIZEOF = 13,
-		IF = 14,
-		WHILE = 15,
-		INDEX = 16,
-		MEMBER = 17,
-		CONTINUE = 18,
-		BREAK = 19,
-		DIRECTIVE = 20,
-		FOR = 21,
-	};
+enum AstType {
+	AST_SCOPE = 0,
+	AST_DECLARATION = 1,
+	AST_FUNCTION = 2,
+	AST_STRUCT = 3,
+	AST_ENUM = 4,
+	AST_TYPE_ALIAS = 5,
+	AST_IDENTIFIER = 6,
+	AST_LITERAL = 7,
+	AST_CAST = 8,
+	AST_RETURN = 9,
+	AST_CALL = 10,
+	AST_BINARY = 11,
+	AST_UNARY = 12,
+	AST_SIZEOF = 13,
+	AST_IF = 14,
+	AST_WHILE = 15,
+	AST_INDEX = 16,
+	AST_MEMBER = 17,
+	AST_CONTINUE = 18,
+	AST_BREAK = 19,
+	AST_DIRECTIVE = 20,
+	AST_FOR = 21,
+};
 
+struct Ast {
 	SourceLocation location;
-	Type type;
+	int type;
 };
 
 struct Expression : Ast {
@@ -82,18 +82,17 @@ struct Expression : Ast {
 * #use      -> includes file from library path
 * #if/#else -> static/compile-time if for conditional code compilation
 */
+enum DirectiveType {
+    DIRECTIVE_INCLUDE,
+	DIRECTIVE_USE,
+};
+
 struct Directive : Expression {
-
-	enum Directive_Type : u32 {
-		INCLUDE,
-		USE,
-	};
-
-	Directive_Type directive_type;
+	int directive_type;
 	String file;
 
 	Directive() {
-		type = Ast::DIRECTIVE;
+		type = AST_DIRECTIVE;
 	}
 };
 
@@ -103,7 +102,7 @@ struct Directive : Expression {
 */
 struct Scope : Expression {
 	Scope() { 
-		type = Ast::SCOPE;
+		type = AST_SCOPE;
 	}
 
 	Scope *parent = 0;
@@ -112,41 +111,40 @@ struct Scope : Expression {
 	Array<Expression *> statements;
 };
 
+/*
+* Unresolved -> a non-primitive type name that cannot be resolved during the parsing stage,
+*				but is being resolved in the semantic analysis
+* 
+* Type		 -> type is used in type aliases and marks a generic type
+*/
+enum BaseTypeInfo {
+    TYPE_UNRESOLVED = 0,
+
+    TYPE_STRUCT,
+    TYPE_ENUM,
+    TYPE_ARRAY,
+
+    TYPE_FUNCTION,
+
+    TYPE_POINTER,
+    /* type so it doesnt conflict with stupid Windows.h macro VOID */
+    TYPE_VOID_TYPE,
+    TYPE_BOOL,
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_STRING,
+
+    TYPE_TYPE,
+};
+
 struct TypeInfo {
-
-	/*
-	* Unresolved -> a non-primitive type name that cannot be resolved during the parsing stage,
-	*				but is being resolved in the semantic analysis
-	* 
-	* Type		 -> type is used in type aliases and marks a generic type
-	*/
-	enum BaseType : u32 {
-		UNRESOLVED = 0,
-
-		STRUCT,
-		ENUM,
-		ARRAY,
-
-		FUNCTION,
-
-		POINTER,
-		/* type so it doesnt conflict with stupid Windows.h macro VOID */
-		VOID_TYPE,
-		BOOL,
-		INT,
-		FLOAT,
-		STRING,
-
-		TYPE,
-	};
-
 	struct EnumMember {
 		Atom *name;
 		Literal *value = 0;
 		s32 index;
 	};
 
-	BaseType type;
+	int type;
 
 	/* element type is used by the pointer and array type */
 	TypeInfo *element_type = 0;
@@ -187,7 +185,7 @@ struct Declaration : Expression {
 	u8 flags = 0;
 
 	Declaration() {
-		type = Ast::DECLARATION;
+		type = AST_DECLARATION;
 	}
 };
 
@@ -217,7 +215,7 @@ struct AFunction : Expression {
 	Array<AFunction *> polymorphed_overloads;
 
 	AFunction() {
-		type = Ast::FUNCTION;
+		type = AST_FUNCTION;
 	}
 };
 
@@ -227,7 +225,7 @@ struct Struct : Expression {
 	Array<Declaration *> members;
 
 	Struct() {
-		type = Ast::STRUCT;
+		type = AST_STRUCT;
 	}
 };
 
@@ -235,7 +233,7 @@ struct Enum : Expression {
 	Identifier *identifier = 0;
 
 	Enum() {
-		type = Ast::ENUM;
+		type = AST_ENUM;
 	}
 };
 
@@ -243,7 +241,7 @@ struct TypeAlias : Expression {
 	Identifier *identifier = 0;
 
 	TypeAlias() {
-		type = Ast::TYPE_ALIAS;
+		type = AST_TYPE_ALIAS;
 	}
 };
 
@@ -251,7 +249,7 @@ struct Sizeof : Expression {
 	TypeInfo *target_type = 0;
 
 	Sizeof() {
-		type = Ast::SIZEOF;
+		type = AST_SIZEOF;
 	}
 };
 
@@ -261,7 +259,7 @@ struct Unary : Expression {
 	bool is_pre = false;
 
 	Unary() {
-		type = Ast::UNARY;
+		type = AST_UNARY;
 	}
 };
 
@@ -271,7 +269,7 @@ struct Binary : Expression {
 	int op;
 
 	Binary() {
-		type = Ast::BINARY;
+		type = AST_BINARY;
 	}
 };
 
@@ -280,7 +278,7 @@ struct Identifier : Expression {
 	Scope *scope = 0;
 
 	Identifier() {
-		type = Ast::IDENTIFIER;
+		type = AST_IDENTIFIER;
 	}
 };
 
@@ -303,7 +301,7 @@ struct Literal : Expression {
 	TypeInfo *compound_type_info;
 
 	Literal() {
-		type = Ast::LITERAL;
+		type = AST_LITERAL;
 	}
 };
 
@@ -312,7 +310,7 @@ struct Cast : Expression {
 	TypeInfo *target_type = 0;
 
 	Cast() {
-		type = Ast::CAST;
+		type = AST_CAST;
 	}
 };
 
@@ -321,7 +319,7 @@ struct Index : Expression {
 	Expression *index = 0;
 
 	Index() {
-		type = Ast::INDEX;
+		type = AST_INDEX;
 	}
 };
 
@@ -332,7 +330,7 @@ struct Member : Expression {
 	s64 field_index = -1;
 
 	Member() {
-		type = Ast::MEMBER;
+		type = AST_MEMBER;
 	}
 };
 
@@ -340,7 +338,7 @@ struct Return : Expression {
 	Expression *return_value = 0;
 
 	Return() {
-		type = Ast::RETURN;
+		type = AST_RETURN;
 	}
 };
 
@@ -352,7 +350,7 @@ struct Call : Expression {
 	bool by_function_pointer = false;
 
 	Call() {
-		type = Ast::CALL;
+		type = AST_CALL;
 	}
 };
 
@@ -363,7 +361,7 @@ struct If : Expression {
     Expression *else_statement = 0;
 
 	If() {
-		type = Ast::IF;
+		type = AST_IF;
 	}
 };
 
@@ -372,7 +370,7 @@ struct While : Expression {
     Expression *statement = 0;
 
     While() {
-    	type = Ast::WHILE;
+    	type = AST_WHILE;
 	}
 };
 
@@ -386,63 +384,63 @@ struct For : Expression {
 	Expression *body = 0;
 
 	For() {
-		type = Ast::FOR;
+		type = AST_FOR;
 	}
 };
 
 struct Continue : Expression {
 	Continue() {
-		type = Ast::CONTINUE;
+		type = AST_CONTINUE;
 	}
 };
 struct Break : Expression {
 	Break() {
-		type = Ast::BREAK;
+		type = AST_BREAK;
 	}
 };
 
-inline bool type_is_enum(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::ENUM;
+inline bool is_enum(TypeInfo *type_info) {
+	return type_info->type == TYPE_ENUM;
 }
 
-inline bool type_is_struct(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::STRUCT;
+inline bool is_struct(TypeInfo *type_info) {
+	return type_info->type == TYPE_STRUCT;
 }
 
-inline bool type_is_array(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::ARRAY;
+inline bool is_array(TypeInfo *type_info) {
+	return type_info->type == TYPE_ARRAY;
 }
 
-inline bool type_is_bool(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::BOOL;
+inline bool is_bool(TypeInfo *type_info) {
+	return type_info->type == TYPE_BOOL;
 }
 
-inline bool type_is_int(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::INT;
+inline bool is_int(TypeInfo *type_info) {
+	return type_info->type == TYPE_INT;
 }
 
-inline bool type_is_float(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::FLOAT;
+inline bool is_float(TypeInfo *type_info) {
+	return type_info->type == TYPE_FLOAT;
 }
 
-inline bool type_is_pointer(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::POINTER;
+inline bool is_pointer(TypeInfo *type_info) {
+	return type_info->type == TYPE_POINTER;
 }
 
-inline bool type_is_function(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::FUNCTION;
+inline bool is_function(TypeInfo *type_info) {
+	return type_info->type == TYPE_FUNCTION;
 }
 
-inline bool type_is_string(TypeInfo *type_info) {
-	return type_info->type == TypeInfo::STRING;
+inline bool is_string(TypeInfo *type_info) {
+	return type_info->type == TYPE_STRING;
 }
 
-inline bool type_is_primitive(TypeInfo *type_info) {
+inline bool is_primitive(TypeInfo *type_info) {
 	switch (type_info->type) {
-		case TypeInfo::FLOAT:
-		case TypeInfo::INT:
-		case TypeInfo::VOID_TYPE:
-		case TypeInfo::BOOL:
+		case TYPE_FLOAT:
+		case TYPE_INT:
+		case TYPE_VOID_TYPE:
+		case TYPE_BOOL:
 			return true;
 		default:
 			return false;

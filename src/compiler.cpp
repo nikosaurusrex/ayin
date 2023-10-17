@@ -32,12 +32,12 @@ Compiler::Compiler(CompileOptions *options) {
     typer = new Typer(this);
 
 	type_void = new TypeInfo();
-	type_void->type = TypeInfo::VOID_TYPE;
+	type_void->type = TYPE_VOID_TYPE;
 
 	type_void_ptr = make_pointer_type(type_void);
 
 	type_bool = new TypeInfo();
-	type_bool->type = TypeInfo::BOOL;
+	type_bool->type = TYPE_BOOL;
 	type_bool->size = 1;
 
 	type_s8  = make_int_type(true, 1);
@@ -56,7 +56,7 @@ Compiler::Compiler(CompileOptions *options) {
 	type_string_data = make_pointer_type(type_u8);
 
 	type_string = new TypeInfo();
-	type_string->type = TypeInfo::STRING;
+	type_string->type = TYPE_STRING;
 
     atom_main = make_atom(to_string("main"));
     atom_data = make_atom(to_string("data"));
@@ -279,10 +279,10 @@ void Compiler::init_definitions() {
 
 void Compiler::handle_directive(Directive *directive) {
 	switch (directive->directive_type) {
-	case Directive::INCLUDE:
+	case DIRECTIVE_INCLUDE:
 		parse_file(directive->file);
 		break;
-	case Directive::USE:
+	case DIRECTIVE_USE:
 		char stdlib_path_str[AYIN_MAX_PATH];
 		snprintf(stdlib_path_str, AYIN_MAX_PATH,
 			"%.*s/%.*s.ay", stdlib_path.length,
@@ -323,7 +323,7 @@ u8 *Compiler::get_command_line(Array<String> *strings) {
 
 TypeInfo *make_int_type(bool is_signed, s32 bytes) {
 	TypeInfo *info = new TypeInfo();
-    info->type = TypeInfo::INT;
+    info->type = TYPE_INT;
     info->is_signed = is_signed;
     info->size = bytes;
     return info;
@@ -331,14 +331,14 @@ TypeInfo *make_int_type(bool is_signed, s32 bytes) {
 
 TypeInfo *make_float_type(s32 bytes) {
 	TypeInfo *info = new TypeInfo();
-    info->type = TypeInfo::FLOAT;
+    info->type = TYPE_FLOAT;
     info->size = bytes;
     return info;
 }
 
 TypeInfo *make_pointer_type(TypeInfo *element_type) {
 	TypeInfo *info = new TypeInfo();
-    info->type = TypeInfo::POINTER;
+    info->type = TYPE_POINTER;
     info->element_type = element_type;
     return info;
 }
@@ -349,27 +349,27 @@ Expression *find_declaration_by_name(Atom *name, Scope *scope) {
 	while (true) {
 		for (auto decl : temp->declarations) {
 			switch (decl->type) {
-				case Ast::STRUCT: {
+				case AST_STRUCT: {
 					auto strct = static_cast<Struct *>(decl);
 					if (strct->identifier->atom == name)
 						return decl;
 				} break;
-				case Ast::TYPE_ALIAS: {
+				case AST_TYPE_ALIAS: {
 					auto ta = static_cast<TypeAlias *>(decl);
 					if (ta->identifier->atom == name)
 						return decl;
 				} break;
-				case Ast::DECLARATION: {
+				case AST_DECLARATION: {
 					auto var_decl = static_cast<Declaration *>(decl);
 					if (var_decl->identifier->atom == name)
 						return decl;
 				} break;
-				case Ast::FUNCTION: {
+				case AST_FUNCTION: {
 					auto fun = static_cast<AFunction *>(decl);
 					if (fun->identifier->atom == name)
 						return decl;
 				} break;
-				case Ast::ENUM: {
+				case AST_ENUM: {
 					auto e = static_cast<Enum *>(decl);
                     if (e->identifier->atom == name)
 						return decl;
@@ -528,39 +528,39 @@ String type_to_string(TypeInfo *type) {
 
 void type_to_string_builder(TypeInfo *type, StringBuilder *builder) {
     switch (type->type) {
-        case TypeInfo::POINTER: {
+        case TYPE_POINTER: {
             builder->append(to_string("pointer to "));
             type_to_string_builder(type->element_type, builder);
         } break;
-        case TypeInfo::VOID_TYPE: {
+        case TYPE_VOID_TYPE: {
             builder->append(to_string("void"));
         } break;
-        case TypeInfo::BOOL: {
+        case TYPE_BOOL: {
             builder->append(to_string("bool"));
         } break;
-        case TypeInfo::INT: {
+        case TYPE_INT: {
             if (type->is_signed) builder->append(to_string("signed "));
             else builder->append(to_string("unsigned "));
 
             builder->print("%d", type->size * 8);
             builder->append(to_string("-bit integer"));
         } break;
-        case TypeInfo::FLOAT: {
+        case TYPE_FLOAT: {
             builder->print("%d", type->size * 8);
             builder->append(to_string("-bit float"));
         } break;
-        case TypeInfo::STRING: {
+        case TYPE_STRING: {
             builder->append(to_string("string"));
         } break;
-        case TypeInfo::STRUCT: {
+        case TYPE_STRUCT: {
             builder->append(to_string("struct "));
             auto name = type->struct_decl->identifier->atom->id;
             builder->print("'%.*s'", name.length, name.data);
         } break;
-        case TypeInfo::FUNCTION: {
+        case TYPE_FUNCTION: {
             builder->append(to_string("function"));
         } break;
-        case TypeInfo::ARRAY: {
+        case TYPE_ARRAY: {
             if (type->array_size >= 0) {
                 builder->append(to_string("constant "));
             } else if (type->is_dynamic) {
