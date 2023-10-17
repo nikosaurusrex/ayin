@@ -322,7 +322,7 @@ void Lexer::read_token() {
 		switch (c) {
 			case '{': case '}': case '[': case ']':
 			case '(': case ')': case ';': case ',':
-			case ':': case '#': {
+			case ':': case '#': case '$': {
 				type = c;
 			 	eat_char();
 			} break;

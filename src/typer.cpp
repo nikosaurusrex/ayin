@@ -112,12 +112,6 @@ void Typer::type_check_statement(Expression *stmt) {
 		case Ast::FOR: {
 			For *_for = static_cast<For *>(stmt);
 
-			/* CASES
-			* for i in 0..10
-			* for v in array
-			* for i, v in array
-			*/
-			
 			infer_type(_for->iterator_expr);
 
 			if (_for->upper_range_expr) {
@@ -244,7 +238,7 @@ void Typer::type_check_function(AFunction *function) {
 	current_function = function;
 
 	resolve_function_type(function);
-
+	
 	if (compiler->errors_reported) return;
 
 	function->linkage_name = mangle_name(function);
@@ -364,6 +358,7 @@ void Typer::infer_type(Expression *expression) {
 	} break;
 	case Ast::CALL: {
 		Call *call = static_cast<Call *>(expression);
+		/* TODO: search for mangeled name instead */
 		Expression *decl = find_declaration_by_id(call->identifier);
 
 		if (!decl) {
@@ -919,6 +914,7 @@ AFunction *Typer::get_polymorph_function(Call *call, AFunction *template_functio
 	}
 
 	auto polymorph = make_polymorph_function(template_function, &call->arguments);
+
 	if (polymorph) {
 		type_check_function(polymorph);
 		template_function->polymorphed_overloads.add(polymorph);
@@ -928,12 +924,49 @@ AFunction *Typer::get_polymorph_function(Call *call, AFunction *template_functio
 }
 
 /*
+* Resolves the type_info that is a TYPE before
+*/
+void resolve_polymorph_types(AFunction *poly, TypeInfo **type_info) {
+	TypeInfo **par_to_set = 0;
+		
+	TypeInfo *current = *type_info;
+	if (type_is_pointer(current) || type_is_array(current)) {
+		while (type_is_pointer(current) || type_is_array(current)) {
+			if (current->element_type->type == TypeInfo::TYPE) {
+				par_to_set = &current->element_type;
+				break;
+			}
+
+			current = current->element_type;
+		}
+	} else if (current->type == TypeInfo::TYPE) {
+		par_to_set = type_info;
+	}
+
+	if (par_to_set) {
+		auto par_type_id = (*par_to_set)->unresolved_name;
+				
+		for (auto tdecl : poly->template_scope->declarations) {
+			TypeAlias *ta = (TypeAlias *) tdecl;
+
+			if (ta->identifier->atom->id == par_type_id->atom->id) {
+				*par_to_set = ta->type_info;
+				break;
+			}
+		}
+	}
+}
+
+/*
 * Creates the polymorphed function from a template function
 * Resolves the generic type aliases
 */
 AFunction *Typer::make_polymorph_function(AFunction *template_function, Array<Expression *> *arguments) {
 	auto poly = compiler->copier->copy_function(template_function);
 	poly->flags &= ~FUNCTION_TEMPLATE;
+	
+	/* @Note: deliberately set it to zero here so that resolve_function_type doesn't skip it */
+	poly->type_info = 0;
 
 	for (s64 i = 0; i < arguments->length; ++i) {
 		auto par = poly->parameter_scope->declarations[i];
@@ -943,6 +976,7 @@ AFunction *Typer::make_polymorph_function(AFunction *template_function, Array<Ex
 		auto arg_type = arg->type_info;
 
 		if (!can_fill_polymorph(par_type, arg_type)) {
+			compiler->report_error(par, "Failed to fill '%s'", par_type->unresolved_name->atom);
 			break;
 		}
 	}
@@ -956,9 +990,16 @@ AFunction *Typer::make_polymorph_function(AFunction *template_function, Array<Ex
 		if (alias->type_info->type == TypeInfo::TYPE) {
 			auto name = alias->identifier->atom->id;
 
-			//	compiler->report_error(alias, "Failed to fill out type '%.*s'", name.length, name.data);
+			compiler->report_error(alias, "Failed to fill out type '%.*s'", name.length, name.data);
 		}
 	}
+	
+	/* @Note: This is because of some stupid ass bug */
+	for (auto decl : poly->parameter_scope->declarations) {
+		resolve_polymorph_types(poly, &decl->type_info);
+	}
+	
+	resolve_polymorph_types(poly, &poly->return_type);
 
 	return poly;
 }
@@ -981,7 +1022,7 @@ bool Typer::can_fill_polymorph(TypeInfo *par_type, TypeInfo *arg_type) {
 		return types_match(par_type, arg_type);
 	}
 
-	if (par_type->type == TypeInfo::UNRESOLVED) {
+	if (par_type->type == TypeInfo::TYPE) {
 		auto decl = find_declaration_by_id(par_type->unresolved_name);
 		if (!decl) {
 			compiler->report_error(par_type->unresolved_name, "Undeclared identifier.\n");
@@ -1111,8 +1152,8 @@ String Typer::mangle_name(AFunction *decl) {
 	sb.putchar('_');
 
 	TypeInfo *func_type = decl->type_info;
-	for (auto par_type : decl->parameter_scope->declarations) {
-		mangle_type(&sb, par_type->type_info);
+	for (auto par_type : func_type->parameters) {
+		mangle_type(&sb, par_type);
 	}
 
 	return sb.to_string();
@@ -1190,9 +1231,9 @@ void Typer::mangle_type(StringBuilder *builder, TypeInfo *type) {
 		mangle_type(builder, type->element_type);
 		builder->putchar('_');
 	} break;
-	default: 
+	default:
 		String unresolved = type->unresolved_name->atom->id;
-		printf("Tried to mangle unresolved type %.*s %d\n", unresolved.length, unresolved.data);
+		printf("Tried to mangle unresolved type %.*s\n", unresolved.length, unresolved.data);
 
 		assert(0);
 	}

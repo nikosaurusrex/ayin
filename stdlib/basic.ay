@@ -31,7 +31,7 @@ func array_reserve<T>(array: *[..] T, amount: s64) {
 
     mem := cast(*T) malloc(amount * sizeof(T));
 
-    if array.data != nil {
+    if array.data != null {
         memcpy(mem, array.data, array.length * sizeof(T));
         free(array.data);
     }

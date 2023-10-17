@@ -1,7 +1,7 @@
 #use "basic";
 
 struct Person {
-    name: str,
+    name: string,
     age: s32
 }
 

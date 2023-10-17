@@ -8,6 +8,7 @@
 
 #define COPY_F(name) (_new->name = old->name)
 #define COPY_C(name) (_new->name = (decltype(_new->name))copy(old->name))
+#define COPY_ARRAY_TYPE(name) for (auto it : old->name) { _new->name.add((decltype(it))copy_type(it)); }
 #define COPY_ARRAY(name) for (auto it : old->name) { _new->name.add((decltype(it))copy(it)); }
 #define COPY_TYPE(name) (_new->name = copy_type(old->name))
 
@@ -271,7 +272,26 @@ AFunction *Copier::copy_function(AFunction *old) {
 }
 
 TypeInfo *Copier::copy_type(TypeInfo *old) {
-	return old;
+	if (!old) return 0;
+
+	TypeInfo *_new = new TypeInfo();
+
+	COPY_F(type);
+	COPY_TYPE(element_type);
+	COPY_C(unresolved_name);
+	COPY_F(array_size);
+	COPY_F(struct_decl);
+	COPY_ARRAY_TYPE(struct_members);
+	COPY_ARRAY_TYPE(parameters);
+	COPY_TYPE(return_type);
+	COPY_F(is_signed);
+	COPY_F(is_dynamic);
+	COPY_F(auto_cast);
+	COPY_F(size);
+	
+	/* @Todo: copy enum type */
+
+	return _new;
 }
 
 Scope *Copier::push_scope(Scope *old) {

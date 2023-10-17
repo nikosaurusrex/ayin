@@ -1,18 +1,9 @@
 #use "basic";
 
-/* @Note asodksaok d*/
-
-func main() s32 #foreign {
+func main() s32 {
 	a: [..]s32;
 
 	array_add(&a, 21);
-	array_add(&a, 561);
-	array_add(&a, 1);
-	array_add(&a, 91);
 
-	for v in a {
-		printf("%d\n", v);
-	}
-    
 	return 0;
 }

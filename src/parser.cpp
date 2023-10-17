@@ -179,7 +179,6 @@ TypeAlias *Parser::parse_type_alias() {
 	return ta;
 }
 
-/* TODO: parse notes */
 AFunction *Parser::parse_function_declaration() {
 	auto fn = AST_NEW(AFunction);
 
@@ -200,6 +199,7 @@ AFunction *Parser::parse_function_declaration() {
 			alias->identifier = parse_identifier();
 			alias->type_info = new TypeInfo();
 			alias->type_info->type = TypeInfo::TYPE;
+			alias->type_info->unresolved_name = alias->identifier;
 
 			if (!alias->identifier) {
 				compiler->report_error(alias, "Expected template type name identifier");
@@ -226,7 +226,7 @@ AFunction *Parser::parse_function_declaration() {
 			compiler->report_error(par_decl, "Can't initialize parameter");
 		}
 
-		current_scope->declarations.add(par_decl);
+		fn->parameter_scope->declarations.add(par_decl);
 
 		if (!expect(')')) {
 			if (!expect_eat(',')) {
@@ -283,7 +283,7 @@ AFunction *Parser::parse_function_declaration() {
 				return fn;
 			}
 
-			current_scope->statements.add(statement_or_declaration);
+			fn->block_scope->statements.add(statement_or_declaration);
 
 			switch (statement_or_declaration->type) {
 			case Ast::DECLARATION:
@@ -291,7 +291,7 @@ AFunction *Parser::parse_function_declaration() {
 			case Ast::ENUM:
 			case Ast::TYPE_ALIAS:
 			case Ast::FUNCTION:
-				current_scope->declarations.add(statement_or_declaration);
+				fn->block_scope->declarations.add(statement_or_declaration);
 				break;
 			default:
 				break;
