@@ -400,11 +400,15 @@ struct For : Expression {
 };
 
 struct Continue : Expression {
+	Scope *continue_to;
+
 	Continue() {
 		type = AST_CONTINUE;
 	}
 };
 struct Break : Expression {
+	Scope *break_to;
+
 	Break() {
 		type = AST_BREAK;
 	}
