@@ -39,6 +39,7 @@ struct Continue;
 struct Break;
 
 struct Return;
+struct Defer;
 
 enum AstType {
 	AST_SCOPE = 0,
@@ -63,6 +64,7 @@ enum AstType {
 	AST_BREAK = 19,
 	AST_DIRECTIVE = 20,
 	AST_FOR = 21,
+	AST_DEFER = 22,
 };
 
 struct Ast {
@@ -109,6 +111,7 @@ struct Scope : Expression {
 
 	Array<Expression *> declarations;
 	Array<Expression *> statements;
+	Array<Defer *> defers;
 };
 
 /*
@@ -339,6 +342,14 @@ struct Return : Expression {
 
 	Return() {
 		type = AST_RETURN;
+	}
+};
+
+struct Defer : Expression {
+	Expression *target;
+
+	Defer() {
+		type = AST_DEFER;
 	}
 };
 

@@ -42,7 +42,7 @@
 
 using namespace llvm;
 
-LLVM_Converter::LLVM_Converter(Compiler *compiler) {
+LLVMConverter::LLVMConverter(Compiler *compiler) {
 	this->compiler = compiler;
 	this->options = compiler->options;
 
@@ -83,7 +83,7 @@ LLVM_Converter::LLVM_Converter(Compiler *compiler) {
 	type_string = StructType::create(*llvm_context, { type_i8->getPointerTo(), type_i64 }, "string", true);
 }
 
-void LLVM_Converter::convert(Scope *scope) {
+void LLVMConverter::convert(Scope *scope) {
 	if (options->debug) {
 		debug.init(this, options->input_file);
 	}
@@ -91,13 +91,25 @@ void LLVM_Converter::convert(Scope *scope) {
 	convert_scope(scope);
 }
 
-void LLVM_Converter::convert_scope(Scope *scope) {
+void LLVMConverter::convert_scope(Scope *scope) {
+	enter_scope(scope);
+
 	for (auto stmt : scope->statements) {
 		convert_statement(stmt);
 	}
 }
 
-void LLVM_Converter::convert_statement(Expression *expression) {
+void LLVMConverter::enter_scope(Scope *scope) {
+	current_scope = scope;
+}
+
+void LLVMConverter::exit_scope(Scope *scope) {
+	for (int i = scope->defers.length - 1; i >= 0; --i) {
+		convert_statement(scope->defers[i]);
+	}
+}
+
+void LLVMConverter::convert_statement(Expression *expression) {
 	switch (expression->type) {
 		case AST_SCOPE: {
 			convert_scope(static_cast<Scope *>(expression));
@@ -119,6 +131,8 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 		} break;
 		case AST_RETURN: {
 			Return *ret = static_cast<Return *>(expression);
+
+			exit_scope(current_scope);
 
 			if (ret->return_value) {
 				Value *return_value = convert_expression(ret->return_value);
@@ -319,7 +333,7 @@ void LLVM_Converter::convert_statement(Expression *expression) {
 	}
 }
 
-Value *LLVM_Converter::convert_expression(Expression *expression, bool is_lvalue) {
+Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue) {
 	while(expression->substitution) expression = expression->substitution;
 
 	switch (expression->type) {
@@ -646,13 +660,18 @@ Value *LLVM_Converter::convert_expression(Expression *expression, bool is_lvalue
 			}
 			return 0;
 		}
+		case AST_DEFER: {
+			Defer *defer = (Defer *) expression;
+
+			return convert_expression(defer->target);
+		}
 	}
 
 	assert(0 && "LLVM expression emission unreachable");
 	return 0;
 }
 
-Value *LLVM_Converter::convert_binary(Binary *binary) {
+Value *LLVMConverter::convert_binary(Binary *binary) {
 	auto rhs = convert_expression(binary->rhs);
 	auto token_op = binary->op;
 	Instruction::BinaryOps op;
@@ -811,7 +830,7 @@ Value *LLVM_Converter::convert_binary(Binary *binary) {
     return new_value;
 }
 
-Type *LLVM_Converter::convert_type(TypeInfo *type_info) {
+Type *LLVMConverter::convert_type(TypeInfo *type_info) {
 	if (type_info->type == TYPE_POINTER) {
 		if (type_info->element_type->type == TYPE_VOID_TYPE) {
 			return type_i8->getPointerTo();
@@ -893,7 +912,7 @@ Type *LLVM_Converter::convert_type(TypeInfo *type_info) {
 	return 0;
 }
 
-void LLVM_Converter::convert_function(AFunction *fun) {
+void LLVMConverter::convert_function(AFunction *fun) {
 	auto fn = get_or_create_function(fun);
 	current_function = fn;
 
@@ -943,7 +962,7 @@ void LLVM_Converter::convert_function(AFunction *fun) {
 	}
 }
 
-Value *LLVM_Converter::gen_constant_compound_lit_var(Literal *lit) {
+Value *LLVMConverter::gen_constant_compound_lit_var(Literal *lit) {
 	Type *ty = convert_type(lit->type_info);
 
 	auto constant_val_name = "const_data" + std::to_string(global_constants_count++);
@@ -958,7 +977,7 @@ Value *LLVM_Converter::gen_constant_compound_lit_var(Literal *lit) {
 	return var;
 }
 
-Constant *LLVM_Converter::gen_constant_compound_lit(Literal *lit) {
+Constant *LLVMConverter::gen_constant_compound_lit(Literal *lit) {
 	Type *ty = convert_type(lit->type_info);
 
 	auto values = lit->values;
@@ -977,7 +996,7 @@ Constant *LLVM_Converter::gen_constant_compound_lit(Literal *lit) {
 	return constant_value;
 }
 
-void LLVM_Converter::optimize() {
+void LLVMConverter::optimize() {
 	legacy::PassManager *pm = new legacy::PassManager();
 	PassManagerBuilder pmb;
 	pmb.OptLevel = 3;
@@ -989,7 +1008,7 @@ void LLVM_Converter::optimize() {
 	pm->run(*llvm_module);
 }
 
-void LLVM_Converter::emit_llvm_ir() {
+void LLVMConverter::emit_llvm_ir() {
 	if (options->debug) {
 		debug.finalize();
 	}
@@ -1001,7 +1020,7 @@ void LLVM_Converter::emit_llvm_ir() {
 	llvm_module->print(dest, 0);
 }
 
-void LLVM_Converter::emit_object_file() {
+void LLVMConverter::emit_object_file() {
 	if (options->debug) {
 		debug.finalize();
 	}
@@ -1038,7 +1057,7 @@ void LLVM_Converter::emit_object_file() {
 	dest.flush();
 }
 
-Function *LLVM_Converter::get_or_create_function(AFunction *function) {
+Function *LLVMConverter::get_or_create_function(AFunction *function) {
 	auto fn_name = STR_REF(function->linkage_name);
 
 	auto fn = llvm_module->getFunction(fn_name);
@@ -1069,7 +1088,7 @@ Function *LLVM_Converter::get_or_create_function(AFunction *function) {
 	return fn;
 }
 
-Value *LLVM_Converter::lalloca(Type *ty) {
+Value *LLVMConverter::lalloca(Type *ty) {
 	auto block = irb->GetInsertBlock();
 
 	if (current_entry->getTerminator()) {
@@ -1084,7 +1103,7 @@ Value *LLVM_Converter::lalloca(Type *ty) {
 	return lalloca;
 }
 
-Value *LLVM_Converter::load(Expression *expr, Value *value) {
+Value *LLVMConverter::load(Expression *expr, Value *value) {
 	Type *ty = value->getType()->getPointerElementType();
 	LoadInst *load = irb->CreateLoad(ty, value);
 	load->setAlignment(ABI_TYPE_ALIGN(ty));
@@ -1096,7 +1115,7 @@ Value *LLVM_Converter::load(Expression *expr, Value *value) {
 	return load;
 }
 
-Value *LLVM_Converter::store(Expression *expr, Value *value, Value *ptr) {
+Value *LLVMConverter::store(Expression *expr, Value *value, Value *ptr) {
 	Type *ty = value->getType();
 	StoreInst *store = irb->CreateStore(value, ptr);
 	store->setAlignment(ABI_TYPE_ALIGN(ty));
@@ -1108,7 +1127,7 @@ Value *LLVM_Converter::store(Expression *expr, Value *value, Value *ptr) {
 	return store;
 }
 
-Value *LLVM_Converter::gep(Expression *expr, llvm::Value *ptr, ArrayRef<Value *> idx_list) {
+Value *LLVMConverter::gep(Expression *expr, llvm::Value *ptr, ArrayRef<Value *> idx_list) {
 	Value *inst = irb->CreateInBoundsGEP(ptr->getType()->getPointerElementType(), ptr, idx_list);
 
 	if (options->debug) {
@@ -1118,7 +1137,7 @@ Value *LLVM_Converter::gep(Expression *expr, llvm::Value *ptr, ArrayRef<Value *>
 	return inst;
 }
 
-void DebugInfo::init(LLVM_Converter *converter, String entry_file) {
+void DebugInfo::init(LLVMConverter *converter, String entry_file) {
 	db = new DIBuilder(*converter->llvm_module);
 	file = create_file(entry_file);
 

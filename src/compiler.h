@@ -24,7 +24,7 @@ struct CompileOptions {
 
 struct Compiler {
 	CompileOptions *options;
-	LLVM_Converter *llvm_converter;
+	LLVMConverter *llvm_converter;
 	Copier *copier;
 	Typer *typer;
 

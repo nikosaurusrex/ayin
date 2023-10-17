@@ -1,24 +1,10 @@
 #use "basic";
 
 func main() s32 {
-	a: [..]s32;
-
-	array_add(&a, 21);
-	array_add(&a, 42);
-	array_add(&a, 13);
-	array_add(&a, 4);
-
-	for i in 0..a.length {
-		printf("%d %d\n", i, a[i]);
-	}
-
-	for v in a {
-		printf("%d %d\n", it_index, v);
-	}
-
-	for i, v in a {
-		printf("%d %d\n", i, v);
-	}
+	a := 20;
+	b := malloc(20);
+	defer free(b);
+	c := 50;
 
 	return 0;
 }

@@ -34,7 +34,7 @@ namespace llvm {
 
 #include "ast.h"
 
-struct LLVM_Converter;
+struct LLVMConverter;
 struct DebugInfo {
 	llvm::DICompileUnit *cu;
 	llvm::DIBuilder *db;
@@ -43,7 +43,7 @@ struct DebugInfo {
 	llvm::DISubprogram *current_sp;
 	Array<llvm::Instruction *> debug_values;
 
-	void init(LLVM_Converter *converter, String entry_file);
+	void init(LLVMConverter *converter, String entry_file);
 
 	void add_function(AFunction *ast_func, llvm::Function *f);
 	void add_parameter(Identifier *id, llvm::Value *var, int arg_index, llvm::Argument &arg, llvm::BasicBlock *block);
@@ -59,7 +59,7 @@ struct DebugInfo {
 
 struct CompileOptions;
 struct Compiler;
-struct LLVM_Converter {
+struct LLVMConverter {
 	Compiler *compiler;
 	DebugInfo debug;
 	CompileOptions *options;
@@ -85,12 +85,16 @@ struct LLVM_Converter {
 	llvm::Type *type_f64;
 	llvm::StructType *type_string;
 
+	Scope *current_scope = 0;
 	s32 global_constants_count = 0;
 
-	LLVM_Converter(Compiler *compiler);
+	LLVMConverter(Compiler *compiler);
 
 	void convert(Scope *scope);
 	void convert_scope(Scope *scope);
+
+	void enter_scope(Scope *scope);
+	void exit_scope(Scope *scope);
 
 	void convert_statement(Expression *expression);
 

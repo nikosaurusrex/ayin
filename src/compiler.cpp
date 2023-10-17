@@ -26,7 +26,7 @@ const int AYIN_MAX_PATH = 512;
 */
 Compiler::Compiler(CompileOptions *options) {
 	this->options = options;
-    llvm_converter = new LLVM_Converter(this);
+    llvm_converter = new LLVMConverter(this);
 	global_scope = new Scope();
 	copier = new Copier(this);
     typer = new Typer(this);

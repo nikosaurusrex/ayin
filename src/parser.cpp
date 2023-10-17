@@ -283,7 +283,9 @@ AFunction *Parser::parse_function_declaration() {
 				return fn;
 			}
 
-			fn->block_scope->statements.add(statement_or_declaration);
+			if (statement_or_declaration->type != AST_DEFER) {
+				fn->block_scope->statements.add(statement_or_declaration);
+			}
 
 			switch (statement_or_declaration->type) {
 			case AST_DECLARATION:
@@ -452,6 +454,16 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 		return ret;
 	}
 
+	if (expect(TK_DEFER)) {
+		Defer *defer = AST_NEW(Defer);
+		next();
+
+		defer->target = parse_declaration_or_statement(true);
+		current_scope->defers.add(defer);
+
+		return defer;
+	}
+
 	if (expect(TK_IF)) {
 		If *_if = AST_NEW(If);
 		next();
@@ -552,7 +564,9 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 				return scope;
 			}
 
-			current_scope->statements.add(statement_or_declaration);
+			if (statement_or_declaration->type != AST_DEFER) {
+				current_scope->statements.add(statement_or_declaration);
+			}
 
 			switch (statement_or_declaration->type) {
 				case AST_DECLARATION:

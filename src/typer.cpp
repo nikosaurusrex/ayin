@@ -14,6 +14,10 @@ void Typer::type_check_scope(Scope *scope) {
 	for (auto stmt : scope->statements) {
 		type_check_statement(stmt);
 	}
+
+	for (int i = scope->defers.length - 1; i >= 0; --i) {
+		type_check_statement(scope->defers[i]);
+	}
 }
 
 void Typer::type_check_statement(Expression *stmt) {
@@ -77,6 +81,13 @@ void Typer::type_check_statement(Expression *stmt) {
 			}
 			break;
 		}
+		case AST_DEFER: {
+			Defer *defer = (Defer *) stmt;
+
+			type_check_statement(defer->target);
+
+			break;
+		};
 		case AST_SCOPE: {
 			Scope *scope = static_cast<Scope *>(stmt);
 
