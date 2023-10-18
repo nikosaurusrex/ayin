@@ -51,6 +51,7 @@ struct Typer {
 	Literal *make_integer_literal(s64 value, TypeInfo *type_info, Ast *source_loc=0);
 	Identifier *make_identifier(Atom *name);
 	Member *make_member(Expression *aggregate_expression, Atom *field);
+	Member *make_member(Expression *aggregate_expression, Identifier *field);
 	Index *make_index(Expression *array, Expression *index);
 };
 

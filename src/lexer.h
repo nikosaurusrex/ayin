@@ -63,6 +63,7 @@ enum TokenType {
 	TK_CONTINUE,
 	TK_CAST,
 	TK_DEFER,
+	TK_USING,
 	TK_NIL,
 	TK_SIZEOF,
 	TK_IN

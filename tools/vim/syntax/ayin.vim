@@ -23,6 +23,7 @@ syntax keyword ayinNull null
 
 syntax keyword ayinReturn return
 syntax keyword ayinDefer defer
+syntax keyword ayinUsing using
 
 syntax region ayinString start=/\v"/ skip=/\v\\./ end=/\v"/
 syntax region ayinChar start=/\v'/ skip=/\v\\./ end=/\v'/
@@ -43,7 +44,8 @@ highlight def link ayinUsing Keyword
 highlight def link ayinCast Keyword
 highlight def link ayinReturn Keyword
 highlight def link ayinIn Keyword
-highlight def link ayinDefer Operator
+highlight def link ayinDefer Keyword
+highlight def link ayinUsing Keyword
 
 highlight def link ayinBreak Keyword
 highlight def link ayinContinue Keyword

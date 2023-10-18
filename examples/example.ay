@@ -1,19 +1,25 @@
 #use "basic";
 
+struct Person {
+    name: string,
+    age: s32
+}
+
+func print_person(p: *Person) {
+    printf("%.*s %d\n", p.name.length, p.name.data, p.age);
+}
+
 func main() s32 {
-	b := malloc(20);
-	defer free(b);
+    p: *Person;
+	using p;
 
-	for i in 0..10 {
-		b := malloc(20);
-		defer free(b);
+	p.age = 510;
+	age = 31;
 
-		if i == 12 {
-			break;
-		}
+	/*
+    p.age = 240;
+    
+	print_person(&p);*/
 
-		printf("%d\n", i);
-	}
-
-	return 0;
+    return 0;
 }

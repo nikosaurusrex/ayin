@@ -464,6 +464,22 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 		return defer;
 	}
 
+	if (expect(TK_USING)) {
+		auto _using = AST_NEW(Using);
+		next();
+		
+		_using->target = parse_identifier();
+		if (!_using->target) {
+			compiler->report_error(_using->target, "Expected identifier after 'using'");
+		}
+
+		if (!expect_eat(';')) {
+			compiler->report_error(token_location(peek()), "Expected ';' after 'using' identifier");
+		}
+
+		return _using;
+	}
+
 	if (expect(TK_IF)) {
 		If *_if = AST_NEW(If);
 		next();

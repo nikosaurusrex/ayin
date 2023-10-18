@@ -29,11 +29,11 @@ void Typer::type_check_statement(Expression *stmt) {
 			type_check_variable_declaration(var_decl);
 		} break;
 		case AST_TYPE_ALIAS: {
-			break;
-		}
+			;
+		} break;
 		case AST_ENUM: {
-			break;
-		}
+			;
+		} break;
 		case AST_FUNCTION: {
 			auto fun = static_cast<AFunction *>(stmt);
 
@@ -80,22 +80,63 @@ void Typer::type_check_statement(Expression *stmt) {
 			} else if (current_function->return_type->type != TYPE_VOID_TYPE) {
 				compiler->report_error(ret, "Tried to return no value from non-void function");
 			}
-			break;
-		}
+		} break;
 		case AST_DEFER: {
 			Defer *defer = (Defer *) stmt;
 
 			type_check_statement(defer->target);
+		}; break;
+		case AST_USING: {
+			Using *_using = (Using *) stmt;
+			
+			Expression *expr_decl = find_declaration_by_id(_using->target);
 
-			break;
-		};
+			if (!expr_decl) {
+				compiler->report_error(_using->target, "Variable is not defined");
+				return;
+			}
+
+			if (expr_decl->type != AST_DECLARATION) {
+				compiler->report_error(_using->target, "Identifier doesn't resolve to variable");
+				return;
+			}
+
+			Declaration *decl = (Declaration *) expr_decl; 
+			
+			TypeInfo *decl_type = decl->type_info;
+			TypeInfo *struct_type = 0;
+			Scope *target_scope = _using->target->scope;
+
+			if (is_pointer(decl_type)) {
+				if (is_struct(decl_type->element_type)) {
+					struct_type = decl_type->element_type;
+				} else {
+					compiler->report_error(_using->target, "Variable has to be a struct or pointer to struct");
+				}
+			} else if (is_struct(decl_type)) {
+				struct_type = decl_type;
+			} else {
+				compiler->report_error(_using->target, "Variable is of struct type");
+			}
+
+			assert(struct_type);
+
+			for (auto field : struct_type->struct_decl->members) {
+				Declaration *field_decl = (Declaration *) field;
+				auto copy = compiler->copier->copy(field);
+
+				Declaration *copy_decl = (Declaration *) copy;
+				copy_decl->member_proxy = make_member(_using->target, field_decl->identifier);
+				infer_type(copy_decl->member_proxy);
+
+				target_scope->declarations.add(copy);
+			}
+		}; break;
 		case AST_SCOPE: {
 			Scope *scope = static_cast<Scope *>(stmt);
 
 			type_check_scope(scope);
-
-			break;
-		}
+		} break;
 		case AST_IF: {
 			If *_if = static_cast<If *>(stmt);
 
@@ -106,9 +147,7 @@ void Typer::type_check_statement(Expression *stmt) {
 
 			type_check_statement(_if->then_statement);
 			type_check_statement(_if->else_statement);
-
-			break;
-		}
+		} break;
 		case AST_WHILE: {
 			While *_while = static_cast<While *>(stmt);
 			current_loop_body = _while->statement;
@@ -119,9 +158,7 @@ void Typer::type_check_statement(Expression *stmt) {
 			}
 
 			type_check_statement(_while->statement);
-
-			break;
-		}
+		} break;
 		case AST_FOR: {
 			For *_for = static_cast<For *>(stmt);
 			current_loop_body = _for->body;
@@ -190,9 +227,7 @@ void Typer::type_check_statement(Expression *stmt) {
 			}
 
 			type_check_statement(_for->body);
-
-			break;
-		}
+		} break;
 		case AST_CONTINUE: {
 			Continue *_continue = (Continue *) stmt;
 
@@ -359,6 +394,13 @@ void Typer::infer_type(Expression *expression) {
 			if (!decl->type_info) {
 				compiler->report_error(id, "Variable not defined");
 				return;
+			}
+
+			if (decl->type == AST_DECLARATION) {
+				Declaration *ddecl = (Declaration *) decl;
+				if (ddecl->member_proxy) {
+					id->substitution = ddecl->member_proxy;
+				}
 			}
 
 			id->type_info = decl->type_info;
@@ -1361,10 +1403,14 @@ Member *Typer::make_member(Expression *aggregate_expression, Atom *field) {
 	auto ident = make_identifier(field);
 	copy_location_info(ident, aggregate_expression);
 
+	return make_member(aggregate_expression, ident);
+}
+
+Member *Typer::make_member(Expression *aggregate_expression, Identifier *field) {
 	Member *mem = new Member();
 	copy_location_info(mem, aggregate_expression);
 	mem->left = aggregate_expression;
-	mem->field = ident;
+	mem->field = field;
 	return mem;
 }
 

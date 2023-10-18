@@ -40,6 +40,7 @@ struct Break;
 
 struct Return;
 struct Defer;
+struct Using;
 
 enum AstType {
 	AST_SCOPE = 0,
@@ -65,6 +66,7 @@ enum AstType {
 	AST_DIRECTIVE = 20,
 	AST_FOR = 21,
 	AST_DEFER = 22,
+	AST_USING = 23,
 };
 
 struct Ast {
@@ -185,6 +187,7 @@ struct Declaration : Expression {
 	Identifier *identifier = 0;
 	/* Initializer not null for defintions, null for declarations */
 	Expression *initializer = 0;
+	Member *member_proxy = 0;
 	u8 flags = 0;
 
 	Declaration() {
@@ -351,6 +354,14 @@ struct Defer : Expression {
 
 	Defer() {
 		type = AST_DEFER;
+	}
+};
+
+struct Using : Expression {
+	Identifier *target;
+
+	Using() {
+		type = AST_USING;
 	}
 };
 

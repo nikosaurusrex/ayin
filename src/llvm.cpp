@@ -351,6 +351,9 @@ void LLVMConverter::convert_statement(Expression *expression) {
 			}
 			break;
 		}
+        case AST_USING: {
+			;
+		} break;
 		default: {
 			convert_expression(expression);
 		}

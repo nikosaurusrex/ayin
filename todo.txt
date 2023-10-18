@@ -1,6 +1,6 @@
-defer
-using (include struct or enum scope in current scope)
 .type
 better array and struct initalization with compound literals
 global variable initialization
+better enums
+switch statements
 test functions #test

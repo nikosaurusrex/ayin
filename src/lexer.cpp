@@ -88,6 +88,7 @@ u8 Lexer::read_atom_or_keyword(TokenData *td) {
 			else if (lexeme == "alias") return TK_ALIAS;
 			else if (lexeme == "break") return TK_BREAK;
 			else if (lexeme == "defer") return TK_DEFER;
+			else if (lexeme == "using") return TK_USING;
 			else if (lexeme == "while") return TK_WHILE;
 			else return TK_ATOM;
 		} break;
