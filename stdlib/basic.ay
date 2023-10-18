@@ -9,17 +9,19 @@ func fopen(path: *u8, mode: *u8) *FILE #foreign;
 func fclose(file: *FILE) s32 #foreign;
 func ftell(file: *FILE) s32 #foreign;
 func fread(ptr: *void, size: s64, count: s64, file: *FILE) s64 #foreign;
+func fseek(file: *FILE, offset: s32, origin: s32) #foreign;
 
 SEEK_SET :: 0;
 SEEK_CUR :: 1;
 SEEK_END :: 2;
 
-func fseek(file: *FILE, offset: s32, origin: s32) #foreign;
-
 func malloc(size: u64) *void #foreign;
+func realloc(ptr: *void, size: u64) *void #foreign;
 func free(ptr: *void) #foreign;
 func memcpy(dest: *void, src: *void, count: u64) #foreign;
 func memset(dest: *void, c: s32, n: u64) #foreign;
+func memcmp(dest: *void, src: *void, n: u64) int #foreign;
+func memmove(dest: *void, src: *void, n: u64) *void #foreign;
 
 func system(string: *u8) s32 #foreign;
 func exit(status: s32) #foreign;

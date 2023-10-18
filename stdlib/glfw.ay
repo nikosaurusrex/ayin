@@ -238,3 +238,4 @@ func glfwGetWindowUserPointer(window: GLFWwindow) *void #foreign;
 func glfwSetWindowTitle(window: GLFWwindow, title: *u8) #foreign;
 func glfwSetFramebufferSizeCallback(window: GLFWwindow, framebuffer_size_callback: framebuffer_size_callback_fn) #foreign;
 func glfwSetKeyCallback(window: GLFWwindow, key_callback: key_callback_fn) #foreign;
+func glfwGetVersionString() *u8 #foreign;

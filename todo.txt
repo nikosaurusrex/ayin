@@ -4,3 +4,8 @@ global variable initialization
 better enums
 switch statements
 test functions #test
+
+default parameters
+multiple return values
+call the right function when multiple defintiions with different types exist
+provide linker flags

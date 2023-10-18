@@ -1127,9 +1127,9 @@ glEndQueryIndexed: (GLenum, GLuint) void;
 glGetQueryIndexediv: (GLenum, GLuint, GLenum, *GLint) void;
 glTexStorage3D: (GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei) void;
 
-extern func wglGetProcAddress(name: *u8) *void;
-extern func LoadLibraryA(module: *u8) *void;
-extern func GetProcAddress(module: *void, func_name: *u8) *void;
+func wglGetProcAddress(name: *u8) *void #foreign;
+func LoadLibraryA(module: *u8) *void #foreign;
+func GetProcAddress(module: *void, func_name: *u8) *void #foreign;
 
 opengl_module: *void;
 

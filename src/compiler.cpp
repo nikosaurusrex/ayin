@@ -5,15 +5,10 @@
 #include "parser.h"
 #include "llvm.h"
 
-#include <iostream>
+#include <time.h>
 
 #ifdef _WIN32
-
 #include "microsoft_craziness.h"
-
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT 
 #endif
 
 static String get_executable_path();
@@ -97,12 +92,20 @@ Compiler::Compiler(CompileOptions *options) {
 * links the object file to an executable
 */
 void Compiler::run() {
+	clock_t before, after;
+
+	before = clock();
 	parse_file(options->input_file);
 
     if (errors_reported) return;
 
 	typer->type_check_scope(global_scope);
     if (errors_reported) return;
+
+	after = clock();
+	statistics.frontend_time = (double)(after - before) * 1000 / CLOCKS_PER_SEC;
+	
+	before = clock();
 
 	llvm_converter->convert(global_scope);
     if (errors_reported) return;
@@ -117,9 +120,22 @@ void Compiler::run() {
 
 	llvm_converter->emit_object_file();
 
+	after = clock();
+	statistics.gen_time = (double)(after - before) * 1000 / CLOCKS_PER_SEC;
+
 	if (!options->compile_only) {
+		before = clock();
+
 		link_program();
+
+		after = clock();
+		statistics.link_time = (double)(after - before) * 1000 / CLOCKS_PER_SEC;
 	}
+
+	printf("Program: %d loc\n", statistics.lines_of_code);
+	printf("Frontend time: %dms\n", statistics.frontend_time);
+	printf("Code gen time: %dms\n", statistics.gen_time);
+	printf("Link time: %dms\n", statistics.link_time);
 }
 
 #ifdef _WIN32
@@ -226,7 +242,7 @@ void Compiler::link_program() {
 #endif
 
 	auto cmd_line = get_command_line(&args);
-	// printf("Linker command: %s\n", cmd_line);
+	printf("Linker command: %s\n", cmd_line);
 	system((char *)cmd_line);
 	#endif
 }
@@ -246,7 +262,7 @@ void Compiler::parse_file(String file_path) {
 	String content;
 	if (!read_entire_file(file_path, &content)) {
 		printf("Failed to read file '%.*s'", file_path.length, file_path.data);
-		std::exit(1);
+		exit(1);
 	}
 
 	file_path = copy_string(file_path);
@@ -255,6 +271,8 @@ void Compiler::parse_file(String file_path) {
 
 	Lexer lexer(this, file_path, content);
 	lexer.tokenize();
+
+	statistics.lines_of_code += lexer.line;
 	
 	Parser parser(this, &lexer);
 	parser.current_scope = global_scope;

@@ -1,0 +1,28 @@
+struct LocalTime {
+	second: int,
+	minute: int,
+	hour: int,
+	mday: int,
+	month: int,
+	year: int,
+	wday: int,
+	yday: int,
+	isdst: int
+}
+
+func time(timer: *s64) s64 #foreign;
+func localtime(timer: *s64) *LocalTime #foreign;
+func asctime(timeptr: *LocalTime) *u8 #foreign; 
+func extern() u64 #foreign;
+
+CLOCKS_PER_SEC :: 1000.0;
+
+func get_local_time() *LocalTime {
+	raw_time: s64;
+	local_time: *LocalTime;
+
+	time(&raw_time);
+	local_time = localtime(&raw_time);
+
+	return local_time;
+}

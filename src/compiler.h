@@ -22,7 +22,15 @@ struct CompileOptions {
 	Array<String> linker_paths;
 };
 
+struct CompileStatistics {
+	int lines_of_code = 0;
+	int frontend_time = 0;
+	int gen_time = 0;
+	int link_time = 0;
+};
+
 struct Compiler {
+	CompileStatistics statistics;
 	CompileOptions *options;
 	LLVMConverter *llvm_converter;
 	Copier *copier;
