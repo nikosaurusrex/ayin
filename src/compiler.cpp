@@ -133,9 +133,10 @@ void Compiler::run() {
 	}
 
 	printf("Program: %d loc\n", statistics.lines_of_code);
-	printf("Frontend time: %dms\n", statistics.frontend_time);
-	printf("Code gen time: %dms\n", statistics.gen_time);
-	printf("Link time: %dms\n", statistics.link_time);
+	printf("Frontend: %dms\n", statistics.frontend_time);
+	printf("Code gen: %dms\n", statistics.gen_time);
+	printf("Linking: %dms\n", statistics.link_time);
+	printf("Total: %dms\n", statistics.link_time + statistics.frontend_time + statistics.gen_time);
 }
 
 #ifdef _WIN32
