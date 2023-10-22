@@ -1,0 +1,26 @@
+#use "basic";
+
+/* Notice: 'using', 'defer' */
+
+struct Person {
+    name: string,
+    age: s32
+}
+
+func print_person(p: *Person) {
+    using p;
+
+    printf("%.*s %d\n", name.length, name.data, age);
+}
+
+func main() s32 {
+    p := cast(*Person) malloc(sizeof(Person));
+    defer free(p);
+
+    p.name = "Anna";
+    p.age = 42;
+
+    print_person(p);
+
+    return 0;
+}
