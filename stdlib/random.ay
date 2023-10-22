@@ -1,0 +1,16 @@
+random_generator_state: u32 : 0;
+
+func random_int() u32 {
+	x: s32 = cast(s32) random_generator_state;
+	hi := x / 127773;	
+	lo := x % 127773;	
+	t := 16807 * lo - 2836 * hi;
+
+	if t <= 0 {
+		t += 0x7fffffff;
+	}
+
+	random_generator_state = cast(u32) x;
+
+	return random_generator_state;
+}
