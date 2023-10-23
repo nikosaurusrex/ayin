@@ -455,13 +455,13 @@ Expression *Parser::parse_declaration_or_statement(bool expect_semicolon) {
 	}
 
 	if (expect(TK_DEFER)) {
-		Defer *defer = AST_NEW(Defer);
+		ADefer *_defer = AST_NEW(ADefer);
 		next();
 
-		defer->target = parse_declaration_or_statement(true);
-		current_scope->defers.add(defer);
+		_defer->target = parse_declaration_or_statement(true);
+		current_scope->defers.add(_defer);
 
-		return defer;
+		return _defer;
 	}
 
 	if (expect(TK_USING)) {

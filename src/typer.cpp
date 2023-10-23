@@ -82,9 +82,9 @@ void Typer::type_check_statement(Expression *stmt) {
 			}
 		} break;
 		case AST_DEFER: {
-			Defer *defer = (Defer *) stmt;
+			ADefer *_defer = (ADefer *) stmt;
 
-			type_check_statement(defer->target);
+			type_check_statement(_defer->target);
 		}; break;
 		case AST_USING: {
 			Using *_using = (Using *) stmt;

@@ -688,9 +688,9 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 			return 0;
 		}
 		case AST_DEFER: {
-			Defer *defer = (Defer *) expression;
+			ADefer *_defer = (ADefer *) expression;
 
-			return convert_expression(defer->target);
+			return convert_expression(_defer->target);
 		}
 	}
 

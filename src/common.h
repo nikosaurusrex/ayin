@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "types.h"
+
 #include "allocator.h"
 
 struct String {
@@ -442,5 +443,36 @@ inline bool read_entire_file(String file_path, String *result) {
     free(cpath);
     return true;
 }
+
+
+#define CONCAT_INTERNAL(x,y) x##y
+#define CONCAT(x,y) CONCAT_INTERNAL(x,y)
+
+template<typename T>
+struct ExitScope {
+    T lambda;
+    ExitScope(T lambda):lambda(lambda){}
+    ~ExitScope(){lambda();}
+  private:
+    ExitScope& operator =(const ExitScope&);
+};
+
+class ExitScopeHelp {
+  public:
+    template<typename T>
+        ExitScope<T> operator+(T t){ return t;}
+};
+
+#if _MSC_VER
+#define defer const auto& CONCAT(defer__, __LINE__) = ExitScopeHelp() + [&]()
+#else // __GNUC__ or __clang__
+#define defer const auto& __attribute__((unused)) CONCAT(defer__, __LINE__) = ExitScopeHelp() + [&]()
+#endif
+
+#if _MSC_VER
+#define debug_break() __debugbreak()
+#else // __GNUC__ or __clang__
+#define debug_break() __builtin_debugtrap()
+#endif
 
 #endif

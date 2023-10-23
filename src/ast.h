@@ -39,7 +39,7 @@ struct Continue;
 struct Break;
 
 struct Return;
-struct Defer;
+struct ADefer;
 struct Using;
 
 enum AstType {
@@ -113,7 +113,7 @@ struct Scope : Expression {
 
 	Array<Expression *> declarations;
 	Array<Expression *> statements;
-	Array<Defer *> defers;
+	Array<ADefer *> defers;
 };
 
 /*
@@ -349,10 +349,10 @@ struct Return : Expression {
 	}
 };
 
-struct Defer : Expression {
+struct ADefer : Expression {
 	Expression *target;
 
-	Defer() {
+	ADefer() {
 		type = AST_DEFER;
 	}
 };
