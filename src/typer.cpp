@@ -424,8 +424,8 @@ void Typer::infer_type(Expression *expression) {
 	} break;
 	case AST_CALL: {
 		Call *call = static_cast<Call *>(expression);
-		/* TODO: search for mangeled name instead */
-		Expression *decl = find_declaration_by_id(call->identifier);
+		/* @Todo: using find_function_by_id here fucks the use of function  pointers, solve as soon as possible */
+		Expression *decl = find_function_by_id(call->identifier, &call->arguments);
 
 		if (!decl) {
 			compiler->report_error(call->identifier, "Symbol not defined");
@@ -455,12 +455,6 @@ void Typer::infer_type(Expression *expression) {
 
 			/* TODO: allow template functions and varargs for function pointers */
 			call->type_info = cit->return_type;
-
-			if (!compare_arguments(call->identifier, &call->arguments, &cit->parameters, false)) {
-				compiler->report_error(call, "Argument count does not match parameter count");
-
-				return;
-			}
 		} else {
 			if (function->flags & FUNCTION_TEMPLATE) {
 				function = get_polymorph_function(call, function);
@@ -469,12 +463,6 @@ void Typer::infer_type(Expression *expression) {
 			} else {
 				call->type_info = function->return_type;
 				call->resolved_function = function;
-
-				if (!compare_arguments(call->identifier, &call->arguments, &function->type_info->parameters, function->flags & FUNCTION_VARARG)) {
-					compiler->report_error2(call->location, "Argument count does not match parameter count", function->location, "Parameters declared here");
-
-					return;
-				}
 			}
 		}
 	} break;
@@ -836,11 +824,12 @@ void Typer::resolve_type_force(TypeInfo **type_info) {
 * returns true if they are compatible (with implicit type conversion)
 * returns false if they are incompatible
 */
-bool Typer::compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags) {
+int Typer::compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags) {
 	auto par_count = par_types->length;
+	int score = 0;
 
 	if (par_count > args->length) {
-		return false;
+		return -1;
 	}
 
 	for (int i = 0; i < args->length; ++i) {
@@ -849,34 +838,42 @@ bool Typer::compare_arguments(Identifier *call, Array<Expression *> *args, Array
 				infer_type((*args)[i]);
 				continue;
 			} else {
-				return false;
+				return -1;
 			}
 		}
 
 		infer_type((*args)[i]);
 
 		TypeInfo *par_type = (*par_types)[i];
-
-		(*args)[i] = check_expression_type_and_cast((*args)[i], par_type);
 		TypeInfo *arg_type = (*args)[i]->type_info;
 
-		if (!types_match(arg_type, par_type)) {
-			String par_ty_str = type_to_string(par_type);
-			String arg_ty_str = type_to_string(arg_type);
+		if (types_match(arg_type, par_type)) {
+			score += 1;
+		} else {
+			TypeInfo *par_type = (*par_types)[i];
 
-			compiler->report_error(
-				(*args)[i],
-				"Type of %d. argument (%.*s) does not match type in function declaration (%.*s)",
-				i + 1,
-				arg_ty_str.length, arg_ty_str.data,
-				par_ty_str.length, par_ty_str.data
-			);
-			/* TODO: return false leads to compiler->report_error called by caller on argument count mismatch */
-			return false;
+			(*args)[i] = check_expression_type_and_cast((*args)[i], par_type);
+			arg_type = (*args)[i]->type_info;
+
+			score += 2;
+
+			if (!types_match(arg_type, par_type)) {
+				String par_ty_str = type_to_string(par_type);
+				String arg_ty_str = type_to_string(arg_type);
+
+				compiler->report_error(
+					(*args)[i],
+					"Type of %d. argument (%.*s) does not match type in function declaration (%.*s)",
+					i + 1,
+					arg_ty_str.length, arg_ty_str.data,
+					par_ty_str.length, par_ty_str.data
+				);
+				return -1;
+			}
 		}
 	}
 
-	return true;
+	return score;
 }
 
 /*
@@ -1299,7 +1296,7 @@ void Typer::mangle_type(StringBuilder *builder, TypeInfo *type) {
 	} break;
 	default:
 		String unresolved = type->unresolved_name->atom->id;
-		printf("Tried to mangle unresolved type %.*s\n", unresolved.length, unresolved.data);
+		printf("Tried to mangle unresolved type %.*s\n", (int) unresolved.length, unresolved.data);
 
 		assert(0);
 	}
@@ -1347,6 +1344,40 @@ Expression *Typer::make_compare_zero(Expression *target) {
 	be->op = TK_NOT_EQ;
 	be->type_info = compiler->type_bool;
 	return be;
+}
+
+Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args) {
+	Scope *scope = id->scope;
+	while (scope->parent) {
+		scope = scope->parent;
+	}
+
+	AFunction *best_matching_function = 0;
+	int max_score = -1;
+
+	for (auto decl : scope->declarations) {
+		switch (decl->type) {
+		case AST_FUNCTION: {
+			auto fun = static_cast<AFunction *>(decl);
+			if (fun->identifier->atom == id->atom) {
+				int score = compare_arguments(id, args, &fun->type_info->parameters, fun->flags & FUNCTION_VARARG);
+				if (score > 0 && score > max_score) {
+					max_score = score;
+					best_matching_function = fun;
+				}
+			}
+		} break;
+		default:
+			break;
+		}
+	}
+
+	if (max_score < 1) {
+		compiler->report_error(id, "No function with name and matching arguments found for identifier");
+		return 0;
+	}
+
+	return best_matching_function;
 }
 
 Expression *Typer::find_declaration_in_scope(Scope *scope, Identifier *id) {

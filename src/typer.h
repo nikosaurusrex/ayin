@@ -26,7 +26,6 @@ struct Typer {
 	TypeInfo *resolve_type_info(TypeInfo *type_info);
     void resolve_type_force(TypeInfo **type_info);
 
-	bool compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags);
 
 	Expression *check_expression_type_and_cast(Expression *expression, TypeInfo *other_type);
 
@@ -46,6 +45,9 @@ struct Typer {
 
 	Expression *make_compare_zero(Expression *target);
 
+
+	Expression *find_function_by_id(Identifier *id, Array<Expression *> *args);
+	int compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags);
 	Expression *find_declaration_in_scope(Scope *scope, Identifier *id);
 
 	Literal *make_integer_literal(s64 value, TypeInfo *type_info, Ast *source_loc=0);

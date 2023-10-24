@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "llvm.h"
 
+#include <ctype.h>
 #include <time.h>
 
 #ifdef _WIN32
@@ -75,7 +76,7 @@ Compiler::Compiler(CompileOptions *options) {
 		exe_dir_path = basepath(exe_dir_path);
 	}
 	char stdlib_path_str[AYIN_MAX_PATH];
-	snprintf(stdlib_path_str, AYIN_MAX_PATH, "%.*sstdlib", ayin_path.length, ayin_path.data);
+	snprintf(stdlib_path_str, AYIN_MAX_PATH, "%.*sstdlib", (int) ayin_path.length, ayin_path.data);
 
 	stdlib_path = copy_string(to_string(stdlib_path_str));
 
@@ -262,7 +263,7 @@ void Compiler::parse_file(String file_path) {
 
 	String content;
 	if (!read_entire_file(file_path, &content)) {
-		printf("Failed to read file '%.*s'", file_path.length, file_path.data);
+		printf("Failed to read file '%.*s'", (int) file_path.length, file_path.data);
 		exit(1);
 	}
 
@@ -304,8 +305,8 @@ void Compiler::handle_directive(Directive *directive) {
 	case DIRECTIVE_USE:
 		char stdlib_path_str[AYIN_MAX_PATH];
 		snprintf(stdlib_path_str, AYIN_MAX_PATH,
-			"%.*s/%.*s.ay", stdlib_path.length,
-			stdlib_path.data, directive->file.length,
+			"%.*s/%.*s.ay", (int) stdlib_path.length,
+			stdlib_path.data, (int) directive->file.length,
 			directive->file.data);
 
 		parse_file(to_string(stdlib_path_str));
@@ -429,8 +430,8 @@ const char *COLOR_RESET = "\033[0m";
 
 void Compiler::report_error_base(SourceLocation loc, const char *msg) {
 	printf("%s", COLOR_CYAN);
-	printf("ayin: \"%.*s\"(%lld:%lld): ", loc.file.length, loc.file.data, loc.line + 1, loc.col + 1);
-	printf(msg);
+	printf("ayin: \"%.*s\"(%lld:%lld): ", (int) loc.file.length, loc.file.data, loc.line + 1, loc.col + 1);
+	printf("%s", msg);
 	printf("\n");
 
 	String source_line = get_line(loc);
