@@ -13,6 +13,8 @@ llvm/**
 **.exe
 **.ll
 **.pdb
+**.o
 **.ilk
 **.make
 Makefile
+examples/main
