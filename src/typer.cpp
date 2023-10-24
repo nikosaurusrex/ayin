@@ -11,6 +11,8 @@ Typer::Typer(Compiler *compiler) {
 }
 
 void Typer::type_check_scope(Scope *scope) {
+	MICROPROFILE_SCOPEI("typer", "type_check_scope", -1);
+
 	for (auto stmt : scope->statements) {
 		type_check_statement(stmt);
 	}

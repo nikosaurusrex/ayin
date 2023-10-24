@@ -23,6 +23,8 @@ Lexer::Lexer(Compiler *compiler, String path, String code) {
 }
 
 void Lexer::tokenize() {
+	MICROPROFILE_SCOPEI("lexer", "tokenize", -1);
+
 	while (pos < input_len) {
 		read_token();
 	}

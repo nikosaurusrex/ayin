@@ -84,6 +84,15 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	MicroProfileOnThreadCreate("Main");
+	MicroProfileSetEnableAllGroups(true);
+	MicroProfileSetForceMetaCounters(1);
+
+	defer {
+		MicroProfileDumpFileImmediately("performance.html", 0, 0);
+		MicroProfileShutdown();
+	};
+
 	Compiler compiler(&options);
 	compiler.run();
 

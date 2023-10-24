@@ -42,6 +42,8 @@ Parser::Parser(Compiler *compiler, Lexer *lexer) {
 }
 
 void Parser::parse() {
+	MICROPROFILE_SCOPEI("parser", "parse", -1);
+
 	Token *t;
 	while (token_type(peek()) != TK_END_OF_FILE) {
 		Expression *stmt = parse_global();

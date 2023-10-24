@@ -84,6 +84,8 @@ LLVMConverter::LLVMConverter(Compiler *compiler) {
 }
 
 void LLVMConverter::convert(Scope *scope) {
+	MICROPROFILE_SCOPEI("codegen", "convert", -1);
+
 	if (options->debug) {
 		debug.init(this, options->input_file);
 	}

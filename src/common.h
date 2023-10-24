@@ -11,6 +11,12 @@
 
 #include "allocator.h"
 
+#define MICROPROFILE_ENABLED 0
+#define MICROPROFILE_GPU_TIMERS 0
+#define MICROPROFILE_WEBSERVER 0
+#define MICROPROFILE_EMBED_HTML 1
+#include "microprofile.h"
+
 struct String {
 	char *data = 0;
 	s64 length = 0;
