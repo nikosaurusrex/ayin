@@ -1,25 +1,17 @@
 #use "basic";
 
-struct Person {
-    name: string,
-    age: s32
+func add(a: s32, b: s32) s32 {
+	return a + b;
 }
 
-func print_person(p: *Person) {
-    printf("%.*s %d\n", p.name.length, p.name.data, p.age);
+func add(a: f32, b: f32) f32 {
+	return a + b;
 }
 
 func main() s32 {
-    p: *Person;
-	using p;
-
-	p.age = 510;
-	age = 31;
-
-	/*
-    p.age = 240;
-    
-	print_person(&p);*/
-
+	printf("%d\n", add(5, 3));
+	printf("%f\n", cast(f64) add(cast 5.1, cast 3.2));
+	//  printf("%f\n", add(5, 3.2));
+	
     return 0;
 }

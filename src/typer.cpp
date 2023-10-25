@@ -424,7 +424,6 @@ void Typer::infer_type(Expression *expression) {
 	} break;
 	case AST_CALL: {
 		Call *call = static_cast<Call *>(expression);
-		/* @Todo: using find_function_by_id here fucks the use of function  pointers, solve as soon as possible */
 		Expression *decl = find_function_by_id(call->identifier, &call->arguments);
 
 		if (!decl) {
@@ -848,26 +847,14 @@ int Typer::compare_arguments(Identifier *call, Array<Expression *> *args, Array<
 		TypeInfo *arg_type = (*args)[i]->type_info;
 
 		if (types_match(arg_type, par_type)) {
-			score += 1;
-		} else {
-			TypeInfo *par_type = (*par_types)[i];
-
-			(*args)[i] = check_expression_type_and_cast((*args)[i], par_type);
-			arg_type = (*args)[i]->type_info;
-
 			score += 2;
+		} else {
+			auto new_expr = check_expression_type_and_cast((*args)[i], par_type);
+			arg_type = new_expr->type_info;
+
+			score += 1;
 
 			if (!types_match(arg_type, par_type)) {
-				String par_ty_str = type_to_string(par_type);
-				String arg_ty_str = type_to_string(arg_type);
-
-				compiler->report_error(
-					(*args)[i],
-					"Type of %d. argument (%.*s) does not match type in function declaration (%.*s)",
-					i + 1,
-					arg_ty_str.length, arg_ty_str.data,
-					par_ty_str.length, par_ty_str.data
-				);
 				return -1;
 			}
 		}
@@ -1361,7 +1348,7 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 			auto fun = static_cast<AFunction *>(decl);
 			if (fun->identifier->atom == id->atom) {
 				int score = compare_arguments(id, args, &fun->type_info->parameters, fun->flags & FUNCTION_VARARG);
-				if (score > 0 && score > max_score) {
+				if ((score > 0 && score > max_score) || !best_matching_function) {
 					max_score = score;
 					best_matching_function = fun;
 				}
@@ -1372,9 +1359,38 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 		}
 	}
 
-	if (max_score < 1) {
+	if (!best_matching_function) {
+		auto decl = find_declaration_by_id(id);
+		if (decl) {
+			return decl;
+		}
+
 		compiler->report_error(id, "No function with name and matching arguments found for identifier");
 		return 0;
+	}
+
+	auto pars = &best_matching_function->type_info->parameters;
+	for (int i = 0; i < (*pars).length; ++i) {
+		TypeInfo *par_type = (*pars)[i];
+		TypeInfo *arg_type = (*args)[i]->type_info;
+
+		if (!types_match(par_type, arg_type)) {
+			(*args)[i] = check_expression_type_and_cast((*args)[i], par_type);
+			arg_type = (*args)[i]->type_info;
+			
+			if (!types_match(par_type, arg_type)) {		
+				String par_ty_str = type_to_string(par_type);
+				String arg_ty_str = type_to_string(arg_type);
+
+				compiler->report_error(
+					(*args)[i],
+					"Type of %d. argument (%.*s) does not match type in function declaration (%.*s)",
+					i + 1,
+					arg_ty_str.length, arg_ty_str.data,
+					par_ty_str.length, par_ty_str.data
+				);
+			}
+		}
 	}
 
 	return best_matching_function;

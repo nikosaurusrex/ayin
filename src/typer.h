@@ -45,7 +45,6 @@ struct Typer {
 
 	Expression *make_compare_zero(Expression *target);
 
-
 	Expression *find_function_by_id(Identifier *id, Array<Expression *> *args);
 	int compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags);
 	Expression *find_declaration_in_scope(Scope *scope, Identifier *id);
