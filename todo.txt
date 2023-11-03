@@ -1,9 +1,7 @@
 fix function pointers
-mangling - prefer upwards casting
 
 default parameters
 multiple return values
-call the right function when multiple defintiions with different types exist
 provide linker flags
 
 .type

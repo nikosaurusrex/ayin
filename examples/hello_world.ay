@@ -1,0 +1,7 @@
+#use "basic";
+
+func main() s32 {
+    printf("Hello WOrld\n");
+
+    return 0;
+}

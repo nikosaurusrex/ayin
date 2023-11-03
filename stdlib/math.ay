@@ -1,18 +1,18 @@
-PI :: 3.14159265359
+PI :: 3.14159265359;
 
-func cos(x f64) f64 #foreign;
-func acos(x f64) f64 #foreign;
-func sin(x f64) f64 #foreign;
-func asin(x f64) f64 #foreign;
-func tan(x f64) f64 #foreign;
-func atan(x f64) f64 #foreign;
+func cos(x: f64) f64 #foreign;
+func acos(x: f64) f64 #foreign;
+func sin(x: f64) f64 #foreign;
+func asin(x: f64) f64 #foreign;
+func tan(x: f64) f64 #foreign;
+func atan(x: f64) f64 #foreign;
 
-func ceil(x f64) f64 #foreign;
-func floor(x f64) f64 #foreign;
+func ceil(x: f64) f64 #foreign;
+func floor(x: f64) f64 #foreign;
 
-func pow(x f64, y f64) f64 #foreign;
-func sqrt(x f64) f64 #foreign;
-func exp(x f64) f64 #foreign;
+func pow(x: f64, y: f64) f64 #foreign;
+func sqrt(x: f64) f64 #foreign;
+func exp(x: f64) f64 #foreign;
 
 func min(a: int, b: int) int {
 	if a < b {

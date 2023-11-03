@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 	argv++;
 
 	if (argc <= 0) {
-        options.input_file = to_string("W:\\ayin\\examples\\example.ay");
+        options.input_file = to_string("E:\\work\\ayin\\examples\\example.ay");
         
         //print_help();
 		//return 0;

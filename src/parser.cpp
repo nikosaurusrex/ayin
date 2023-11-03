@@ -401,40 +401,40 @@ Expression *Parser::parse_directive() {
 		auto cond_ty = token_type(cond);
 		auto cond_td = token_data(cond);
 
-		if (cond_ty == TK_ATOM) {
-			Expression *if_case = parse_declaration_or_statement();
-			Expression *else_case = 0;
-
-			if (token_type(peek()) == '#' &&
-				token_type(peek(1)) == TK_ATOM &&
-				token_data(peek(1)).lexeme == to_string("else")) {
-
-				next();
-				next();
-
-				else_case = parse_declaration_or_statement();
-			}
-
-			bool cond_true = false;
-
-			for (auto def : compiler->definitions) {
-				if (def == cond_td.lexeme) {
-					cond_true = true;
-					break;
-				}
-			}
-
-			if (cond_true) {
-				return if_case;
-			} else {
-				if (else_case) {
-					return else_case;
-				}
-				return parse_declaration_or_statement();
-			}
-		} else {
+		if (cond_ty != TK_ATOM) {
 			compiler->report_error(token_location(cond), "Expected identifier after #if");
 			return 0;
+		}
+
+		Expression *if_case = parse_declaration_or_statement();
+		Expression *else_case = 0;
+
+		if (token_type(peek()) == '#' &&
+			token_type(peek(1)) == TK_ATOM &&
+			token_data(peek(1)).lexeme == to_string("else")) {
+
+			next();
+			next();
+
+			else_case = parse_declaration_or_statement();
+		}
+
+		bool cond_true = false;
+
+		for (auto def : compiler->definitions) {
+			if (def == cond_td.lexeme) {
+				cond_true = true;
+				break;
+			}
+		}
+
+		if (cond_true) {
+			return if_case;
+		} else {
+			if (else_case) {
+				return else_case;
+			}
+			return parse_declaration_or_statement();
 		}
 	}
 

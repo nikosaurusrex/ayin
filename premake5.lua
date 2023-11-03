@@ -14,12 +14,13 @@ project "ayin"
 	objdir ("bin/" .. outputdir .. "/temp")
 	cppdialect "C++17"
 
-	files { "src/*.h", "src/*.cpp" }
+	files { "src/*.h", "src/*.cpp", "vendor/*.cpp", "vendor/*.h" }
+	includedirs { "vendor" }
 
 	filter "system:windows"
 		architecture "x64"
 		staticruntime "On"
-		systemversion "10.0.19041.0"
+		systemversion "latest"
   		includedirs { "llvm/include" }
   		linkoptions { "llvm/lib/*.lib" }
 

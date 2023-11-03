@@ -13,13 +13,8 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
-#include "llvm/Transforms/IPO/PassManagerBuilder.h"
-
-#if LLVM_VERSION_MAJOR == 8
-#include "llvm/Support/TargetRegistry.h"
-#else
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/MC/TargetRegistry.h"
-#endif
 
 #include "llvm/Target/TargetMachine.h"
 
@@ -33,12 +28,7 @@
 #include "llvm.h"
 
 #define STR_REF(x) StringRef(x.data, x.length)
-
-#if LLVM_VERSION_MAJOR == 8
-#define ABI_TYPE_ALIGN(x) llvm_module->getDataLayout().getABITypeAlignment(x)
-#else
 #define ABI_TYPE_ALIGN(x) llvm_module->getDataLayout().getABITypeAlign(x)
-#endif
 
 using namespace llvm;
 
@@ -51,6 +41,9 @@ LLVMConverter::LLVMConverter(Compiler *compiler) {
 	InitializeAllTargetMCs();
 	InitializeAllAsmParsers();
 	InitializeAllAsmPrinters();
+
+	sys::printDefaultTargetAndDetectedCPU(outs());
+	TargetRegistry::printRegisteredTargetsForVersion(outs());
 
 	std::string target_triple = llvm::sys::getDefaultTargetTriple();
 	std::string error;
@@ -65,12 +58,15 @@ LLVMConverter::LLVMConverter(Compiler *compiler) {
 	auto features = "";
 
 	TargetOptions opt;
-	auto rm = Optional<Reloc::Model>();
+	auto rm = Reloc::Model();
 	target_machine = target->createTargetMachine(target_triple, cpu, features, opt, rm);
 
 	llvm_context = new LLVMContext();
 	llvm_module = new Module("Ayin", *llvm_context);
 	irb = new IRBuilder<ConstantFolder, IRBuilderDefaultInserter>(*llvm_context);
+	
+	llvm_module->setDataLayout(target_machine->createDataLayout());
+	llvm_module->setTargetTriple(target_triple);
 
 	type_void = Type::getVoidTy(*llvm_context);
 	type_i1 = Type::getInt1Ty(*llvm_context);
@@ -280,7 +276,7 @@ void LLVMConverter::convert_statement(Expression *expression) {
 				debug.add_inst(_for->iterator_expr, br);
 			}
 
-			auto loaded_index = load(_for, index_ref);
+			auto loaded_index = load(_for, convert_type(index_type), index_ref);
 			
 			auto upper = convert_expression(_for->upper_range_expr);
 			Value *cond = nullptr;
@@ -311,7 +307,7 @@ void LLVMConverter::convert_statement(Expression *expression) {
 				debug.add_inst(_for->iterator_expr, br);
 			}
 
-			loaded_index = load(_for, index_ref);
+			loaded_index = load(_for, convert_type(index_type), index_ref);
 			auto added = irb->CreateNSWAdd(
 				loaded_index,
 				ConstantInt::get(convert_type(index_type), 1)
@@ -397,7 +393,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				auto var = lalloca(decl_type);
 
 				if (options->debug) {
-					debug.add_variable(decl->identifier, var, irb->GetInsertBlock());
+					debug.add_variable(decl->identifier, decl_type, var, irb->GetInsertBlock());
 				}
 
 				if (decl->initializer) {
@@ -475,7 +471,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				if (is_lvalue) {
 					return ref;
 				}
-				return load(id, ref);
+				return load(id, convert_type(decl->type_info), ref);
 			} else {
 				auto fn = static_cast<AFunction *>(declaration);
 
@@ -496,7 +492,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				Value *value = convert_expression(cast->expression, true);
 
 				Value *zero = ConstantInt::get(type_i64, 0);
-				Value *ref = gep(cast->expression, value, { zero, zero });
+				Value *ref = gep(cast->expression, convert_type(cast->expression->type_info), value, { zero, zero });
 
 				Value *converted = irb->CreateInsertValue(UndefValue::get(dst_type), ref, 0);
 				converted = irb->CreateInsertValue(converted, ConstantInt::get(type_i64, src->array_size), 1);
@@ -549,7 +545,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 			} else if (is_int(src) && is_bool(dst)) {
 				return irb->CreateTrunc(value, dst_type);
 			}
-			return load(cast, value);
+			return load(cast, convert_type(cast->expression->type_info), value);
 		}
 		case AST_CALL: {
 			Call *call = static_cast<Call *>(expression);
@@ -566,7 +562,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 
 				FunctionType *fun_type = static_cast<FunctionType *>(convert_type(call->identifier->type_info));
 
-				auto loaded = load(decl, decl->llvm_reference);
+				auto loaded = load(decl, convert_type(decl->type_info), decl->llvm_reference);
 				call_inst = irb->CreateCall(fun_type, loaded, ArrayRef<Value *>(arguments.data, arguments.length));
 			} else {
 				Function *fun = get_or_create_function(call->resolved_function);
@@ -594,7 +590,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				case '*': {
 					auto value = convert_expression(unary->target, is_lvalue);
 
-					return load(unary, value);
+					return load(unary, convert_type(unary->type_info), value);
 				}
 				case '!': {
 					auto target = convert_expression(unary->target);
@@ -612,7 +608,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				case TK_PLUS_PLUS:
 				case TK_MINUS_MINUS: {
 					auto target = convert_expression(unary->target, true);
-					auto loaded = load(unary, target);
+					auto loaded = load(unary, convert_type(unary->type_info), target);
 					auto type = convert_type(unary->type_info);
 					Value *one;
 
@@ -645,33 +641,36 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 			auto array = convert_expression(array_index->expression, true);
             auto index = convert_expression(array_index->index);
 			index = irb->CreateSExt(index, type_i64);
-            
+
+			auto array_type = convert_type(array_index->expression->type_info);
+			auto element_type = convert_type(array_index->type_info);
+
             auto type = array_index->expression->type_info;
             if (is_array(type) && type->array_size == -1) {
-                array = gep(array_index, array, {ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, 0)});
-                array = load(array_index, array);
-                auto element = gep(array_index, array, index);
+                array = gep(array_index, array_type, array, {ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, 0)});
+                array = load(array_index, array_type, array);
+                auto element = gep(array_index, array_type, array, index);
                 
-                if (!is_lvalue) return load(array_index, element);
+                if (!is_lvalue) return load(array_index, element_type, element);
                 return element;
             } else if (is_pointer(type)) {
-                auto ptr = load(array_index, array);
-                auto element = gep(array_index, ptr, {index});
+                auto ptr = load(array_index, array_type, array);
+                auto element = gep(array_index, array_type, ptr, {index});
                 
-                if (!is_lvalue) return load(array_index, element);
+                if (!is_lvalue) return load(array_index, element_type, element);
                 return element;
 			} else if (is_string(type)) {
-				array = gep(array_index, array, { ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, 0) });
-				array = load(array_index, array);
-				auto element = gep(array_index, array, index);
+				array = gep(array_index, array_type, array, { ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, 0) });
+				array = load(array_index, array_type, array);
+				auto element = gep(array_index, array_type, array, index);
 
-				if (!is_lvalue) return load(array_index, element);
+				if (!is_lvalue) return load(array_index, element_type, element);
 				return element;
 			}
             
-            auto element = gep(array_index, array, {ConstantInt::get(type_i64, 0), index});
+            auto element = gep(array_index, convert_type(array_index->type_info), array, {ConstantInt::get(type_i64, 0), index});
             
-            if (!is_lvalue) return load(array_index, element);
+            if (!is_lvalue) return load(array_index, element_type, element);
             return element;
 
 			return 0;
@@ -683,8 +682,8 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 			if (auto constant = dyn_cast<Constant>(lhs)) {
 				return irb->CreateExtractValue(constant, member->field_index);
 			} else {
-				auto valueptr = gep(member, lhs, { ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, member->field_index) });
-				if (!is_lvalue) return load(member, valueptr);
+				auto valueptr = gep(member, convert_type(member->left->type_info), lhs, { ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, member->field_index) });
+				if (!is_lvalue) return load(member, convert_type(member->type_info), valueptr);
 				return valueptr;
 			}
 			return 0;
@@ -777,7 +776,7 @@ Value *LLVMConverter::convert_binary(Binary *binary) {
 	} else if (binop_is_binary(token_op) || (token_op >= TK_ADD_EQ && token_op <= TK_MOD_EQ)) {
 		auto lhs = convert_expression(binary->lhs);
 	    if (is_ptr) {
-	        new_value = gep(binary, lhs, rhs);
+	        new_value = gep(binary, convert_type(binary->lhs->type_info), lhs, rhs);
         } else {
             switch (token_op) {
                 case '|':
@@ -1026,15 +1025,22 @@ Constant *LLVMConverter::gen_constant_compound_lit(Literal *lit) {
 }
 
 void LLVMConverter::optimize() {
-	legacy::PassManager *pm = new legacy::PassManager();
-	PassManagerBuilder pmb;
-	pmb.OptLevel = 3;
-	pmb.SizeLevel = 0;
-	pmb.DisableUnrollLoops = false;
-	pmb.LoopVectorize = true;
-	pmb.SLPVectorize = true;
-	pmb.populateModulePassManager(*pm);
-	pm->run(*llvm_module);
+	LoopAnalysisManager lam;
+	FunctionAnalysisManager fam;
+	CGSCCAnalysisManager cgam;
+	ModuleAnalysisManager mam;
+
+	PassBuilder pb;
+
+	pb.registerModuleAnalyses(mam);
+	pb.registerCGSCCAnalyses(cgam);
+	pb.registerFunctionAnalyses(fam);
+	pb.registerLoopAnalyses(lam);
+	pb.crossRegisterProxies(lam, fam, cgam, mam);
+
+	auto mpm = pb.buildPerModuleDefaultPipeline(OptimizationLevel::O2);
+
+	mpm.run(*llvm_module, mam);
 }
 
 void LLVMConverter::emit_llvm_ir() {
@@ -1132,10 +1138,9 @@ Value *LLVMConverter::lalloca(Type *ty) {
 	return lalloca;
 }
 
-Value *LLVMConverter::load(Expression *expr, Value *value) {
-	Type *ty = value->getType()->getPointerElementType();
-	LoadInst *load = irb->CreateLoad(ty, value);
-	load->setAlignment(ABI_TYPE_ALIGN(ty));
+Value *LLVMConverter::load(Expression *expr, Type *type, Value *value) {
+	LoadInst *load = irb->CreateLoad(type, value);
+	load->setAlignment(ABI_TYPE_ALIGN(type));
 
 	if (options->debug) {
 		debug.add_inst(expr, load);
@@ -1156,8 +1161,8 @@ Value *LLVMConverter::store(Expression *expr, Value *value, Value *ptr) {
 	return store;
 }
 
-Value *LLVMConverter::gep(Expression *expr, llvm::Value *ptr, ArrayRef<Value *> idx_list) {
-	Value *inst = irb->CreateInBoundsGEP(ptr->getType()->getPointerElementType(), ptr, idx_list);
+Value *LLVMConverter::gep(Expression *expr, Type *type, Value *ptr, ArrayRef<Value *> idx_list) {
+	Value *inst = irb->CreateInBoundsGEP(type, ptr, idx_list);
 
 	if (options->debug) {
 		debug.add_inst(expr, static_cast<Instruction *>(inst));
@@ -1205,8 +1210,8 @@ void DebugInfo::add_parameter(Identifier *id, Value *var, int arg_index, Argumen
 		block);
 }
 
-void DebugInfo::add_variable(Identifier *id, Value *var, BasicBlock *block) {
-	DIType *debug_ty = convert_type(var->getType()->getPointerElementType());
+void DebugInfo::add_variable(Identifier *id, Type *type, Value *var, BasicBlock *block) {
+	DIType *debug_ty = convert_type(type);
 	int var_line = id->location.line + 1;
 	DILocalVariable *debug_var = db->createAutoVariable(current_sp, STR_REF(id->atom->id), current_sp->getFile(), var_line, debug_ty);
 	db->insertDeclare(var, debug_var, db->createExpression(),
@@ -1261,20 +1266,32 @@ DIType *DebugInfo::convert_type(Type *type) {
 			int i = 0;
 			for (Type *arg_type : struct_type->elements()) {
 				DIType *decl_type = convert_type(arg_type);
-				arg_types.push_back(db->createMemberType(file, std::to_string(i), file, 0, layout->getTypeSizeInBits(arg_type), layout->getABITypeAlignment(arg_type), layout->getStructLayout(struct_type)->getElementOffsetInBits(i), DINode::FlagZero, decl_type));
+				arg_types.push_back(db->createMemberType(file, std::to_string(i),
+					file, 0, layout->getTypeSizeInBits(arg_type),
+					layout->getABITypeAlign(arg_type).value(),
+					layout->getStructLayout(struct_type)->getElementOffsetInBits(i),
+					DINode::FlagZero, decl_type
+				));
 				i++;
 			}
-			return db->createStructType(file, struct_type->hasName() ? struct_type->getName() : "", file, 0, layout->getTypeSizeInBits(type), layout->getABITypeAlignment(type), DINode::FlagZero, 0, db->getOrCreateArray(arg_types));
+			return db->createStructType(
+				file, struct_type->hasName() ? struct_type->getName() : ""
+				, file, 0, layout->getTypeSizeInBits(type),
+				layout->getABITypeAlign(type).value(), DINode::FlagZero,
+				0, db->getOrCreateArray(arg_types
+			));
 		}
 		case Type::ArrayTyID: {
 			ArrayType *array_type = dyn_cast<ArrayType>(type);
 			std::vector<Metadata *> subscripts;
 			subscripts.push_back(db->getOrCreateSubrange(0, array_type->getNumElements()));
-			return db->createArrayType(layout->getTypeSizeInBits(type), layout->getABITypeAlignment(type), convert_type(array_type->getElementType()), db->getOrCreateArray(subscripts));
+
+			/* TODO: .value correct here? */
+			return db->createArrayType(layout->getTypeSizeInBits(type), layout->getABITypeAlign(type).value(), convert_type(array_type->getElementType()), db->getOrCreateArray(subscripts));
 		}
 		case Type::PointerTyID: {
 			PointerType *pointer_type = dyn_cast<PointerType>(type);
-			return db->createPointerType(convert_type(pointer_type->getPointerElementType()), layout->getTypeSizeInBits(type));
+			return db->createPointerType(convert_type(pointer_type->getNonOpaquePointerElementType()), layout->getTypeSizeInBits(type));
 		}
 	}
 

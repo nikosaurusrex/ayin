@@ -1,17 +1,130 @@
 #use "basic";
+#use "glfw";
+#use "gl";
+#use "math";
+#use "time";
 
-func add(a: s32, b: s32) s32 {
-	return a + b;
+
+WINDOW_WIDTH :: 400;
+WINDOW_HEIGHT :: 400;
+WINDOW_TITLE: *u8 = "Clock";
+
+RADIANS_IN_PERCENT :: 0.062831853071796;
+
+func error(msg: string) {
+    printf("%.*s\n", msg.length, msg.data);
+    exit(1);
 }
 
-func add(a: f32, b: f32) f32 {
-	return a + b;
+/*
+func convert_percent_to_radians(percent: f64) f64 {
+	return RADIANS_IN_PERCENT * (percent * 100.0);
 }
 
-func main() s32 {
-	printf("%d\n", add(5, 3));
-	printf("%f\n", cast(f64) add(cast 5.1, cast 3.2));
-	//  printf("%f\n", add(5, 3.2));
+func draw_circle(radius: f64, fill: bool) {
+	tau := PI * 2.0;
+	am := 1000;
 	
-    return 0;
+	if fill {
+		glBegin(GL_TRIANGLE_FAN);
+	} else {
+		glBegin(GL_LINE_LOOP);
+	}
+	
+	i := 0;
+	while i <= am {
+		angle := tau * cast(f64) (i) / cast(f64) (am);
+		x := radius * cos(angle);
+		y := radius * sin(angle);
+		glVertex2f(x, y);
+	
+		i += 1;
+	}
+	
+	glEnd();
+}
+
+func draw_hand(width: f64, percent: f64, len: f64) {
+	conv := convert_percent_to_radians(percent);
+	
+	glLineWidth(width);
+	
+	glBegin(GL_LINES);
+	
+	glVertex2f(0.0, 0.0);
+	x := len * sin(conv);
+	y := len * cos(conv);
+	glVertex2f(x, y);
+	
+	glEnd();
+}
+
+func render() {
+	glDisable(GL_TEXTURE_2D);
+	glColor4f(1.0, 1.0, 1.0, 1.0);
+	
+	glPushMatrix();
+	glLineWidth(1.0);
+	// glTranslatef(0.5, 0.5, 0.0);
+	
+	clock_radius := 0.8;
+	
+	now := get_local_time();
+	seconds := cast(f64) now.second;
+	minutes := cast(f64) now.minute;
+	hours := cast(f64) now.hour;
+
+	draw_hand(2.0, seconds / 60.0, clock_radius);
+	// Minutes
+	draw_hand(4.0, minutes / 60.0, clock_radius * 0.75);
+	// Hours
+	draw_hand(6.0, (hours % 12.0) / 12.0, clock_radius * 0.5);
+	
+	glLineWidth(1.0);
+	draw_circle(clock_radius, false);
+	draw_circle(0.05, true);
+	
+	glPopMatrix();
+}
+*/
+
+
+func main() int {
+    if (!glfwInit()) {
+    	error("Failed to initialize GLFW!");
+    }
+
+    window := glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_TITLE, null, null);
+    if (!window) {
+        glfwTerminate();
+    }
+
+	
+	glfwSwapInterval(1);
+	glfwShowWindow(window);
+
+    glfwMakeContextCurrent(window);
+	
+	opengl_init();
+
+    glShadeModel(GL_SMOOTH);
+	/*
+	glDisable(GL_DEPTH_TEST);
+	glClearColor(0.0, 0.0, 0.0, 1.0);
+
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+    while (!glfwWindowShouldClose(window)) {
+        glClear(GL_COLOR_BUFFER_BIT);
+		glLoadIdentity();
+
+		// render();
+		glFlush();
+		
+		glfwSwapBuffers(window);
+        glfwPollEvents();
+    }
+
+    glfwTerminate();*/
+    return 0; 
 }

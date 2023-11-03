@@ -47,7 +47,7 @@ struct DebugInfo {
 
 	void add_function(AFunction *ast_func, llvm::Function *f);
 	void add_parameter(Identifier *id, llvm::Value *var, int arg_index, llvm::Argument &arg, llvm::BasicBlock *block);
-	void add_variable(Identifier *id, llvm::Value *var, llvm::BasicBlock *block);
+	void add_variable(Identifier *id, llvm::Type *type, llvm::Value *var, llvm::BasicBlock *block);
 	void add_inst(Expression *expr, llvm::Instruction *inst);
 
 	llvm::DIType *convert_type(llvm::Type *type);
@@ -112,9 +112,9 @@ struct LLVMConverter {
 
 	llvm::Function *get_or_create_function(AFunction *function); 
 	llvm::Value *lalloca(llvm::Type *ty);
-	llvm::Value *load(Expression *expr, llvm::Value *value);
+	llvm::Value *load(Expression *expr, llvm::Type *type, llvm::Value *value);
 	llvm::Value *store(Expression *expr, llvm::Value *value, llvm::Value *ptr);
-	llvm::Value *gep(Expression *expr, llvm::Value *ptr, llvm::ArrayRef<llvm::Value *> idx_list);
+	llvm::Value *gep(Expression *expr, llvm::Type *type, llvm::Value *ptr, llvm::ArrayRef<llvm::Value *> idx_list);
 };
 
 #endif

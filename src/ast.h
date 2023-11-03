@@ -6,6 +6,7 @@
 
 namespace llvm {
 	class Value;
+	class Type;
 };
 
 struct Ast;
@@ -183,7 +184,7 @@ const u8 VAR_CONSTANT = 0x2;
 
 struct Declaration : Expression {
 	/* llvm_reference is set in the llvm code generation stage */
-	llvm::Value *llvm_reference = 0;
+	llvm::Value *llvm_reference;
 	Identifier *identifier = 0;
 	/* Initializer not null for defintions, null for declarations */
 	Expression *initializer = 0;

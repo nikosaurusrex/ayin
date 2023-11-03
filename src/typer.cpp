@@ -378,6 +378,9 @@ void Typer::infer_type(Expression *expression) {
 				compiler->report_error(lit, "Illegal type for compound literal.\nExpected struct or array type!");
 			}
 		} break;
+		default: {
+			break;
+		};
 		}
 	} break;
 	case AST_IDENTIFIER: {
@@ -427,8 +430,10 @@ void Typer::infer_type(Expression *expression) {
 		Expression *decl = find_function_by_id(call->identifier, &call->arguments);
 
 		if (!decl) {
-			compiler->report_error(call->identifier, "Symbol not defined");
-			return;
+			decl = find_declaration_by_id(call->identifier);
+			if (!decl) {
+				compiler->report_error(call->identifier, "No function with name and matching arguments found for identifier");
+			}
 		}
 
 		AFunction *function;
@@ -454,6 +459,12 @@ void Typer::infer_type(Expression *expression) {
 
 			/* TODO: allow template functions and varargs for function pointers */
 			call->type_info = cit->return_type;
+
+			if (compare_arguments(call->identifier, &call->arguments, &cit->parameters, false) < 0) {
+				compiler->report_error(call, "Argument count does not match parameter count");
+
+				return;
+			}
 		} else {
 			if (function->flags & FUNCTION_TEMPLATE) {
 				function = get_polymorph_function(call, function);
@@ -1360,12 +1371,6 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 	}
 
 	if (!best_matching_function) {
-		auto decl = find_declaration_by_id(id);
-		if (decl) {
-			return decl;
-		}
-
-		compiler->report_error(id, "No function with name and matching arguments found for identifier");
 		return 0;
 	}
 

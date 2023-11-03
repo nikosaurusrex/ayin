@@ -1,7 +1,7 @@
 
 #define MICROPROFILE_IMPL
 
-#include "common.h"
+#include "../src/common.h"
 #if MICROPROFILE_ENABLED
 
 
