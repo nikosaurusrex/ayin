@@ -465,6 +465,8 @@ void Typer::infer_type(Expression *expression) {
 
 				return;
 			}
+
+			match_call_with_function(&call->arguments, cit);
 		} else {
 			if (function->flags & FUNCTION_TEMPLATE) {
 				function = get_polymorph_function(call, function);
@@ -1378,7 +1380,13 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 		return 0;
 	}
 
-	auto pars = &best_matching_function->type_info->parameters;
+	match_call_with_function(args, best_matching_function->type_info);
+
+	return best_matching_function;
+}
+
+void Typer::match_call_with_function(Array<Expression*> *args, TypeInfo *function_type) {
+	auto pars = &function_type->parameters;
 	for (int i = 0; i < (*pars).length; ++i) {
 		TypeInfo *par_type = (*pars)[i];
 		TypeInfo *arg_type = (*args)[i]->type_info;
@@ -1401,8 +1409,6 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 			}
 		}
 	}
-
-	return best_matching_function;
 }
 
 Expression *Typer::find_declaration_in_scope(Scope *scope, Identifier *id) {

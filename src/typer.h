@@ -47,6 +47,7 @@ struct Typer {
 
 	Expression *find_function_by_id(Identifier *id, Array<Expression *> *args);
 	int compare_arguments(Identifier *call, Array<Expression *> *args, Array<TypeInfo *> *par_types, bool varags);
+	void match_call_with_function(Array<Expression*> *args, TypeInfo *function_type);
 	Expression *find_declaration_in_scope(Scope *scope, Identifier *id);
 
 	Literal *make_integer_literal(s64 value, TypeInfo *type_info, Ast *source_loc=0);

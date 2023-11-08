@@ -559,11 +559,22 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 			if (call->by_function_pointer) {
 				auto declaration = find_declaration_by_id(call->identifier);
 				Declaration *decl = static_cast<Declaration *>(declaration);
-
 				FunctionType *fun_type = static_cast<FunctionType *>(convert_type(call->identifier->type_info));
 
-				auto loaded = load(decl, convert_type(decl->type_info), decl->llvm_reference);
-				call_inst = irb->CreateCall(fun_type, loaded, ArrayRef<Value *>(arguments.data, arguments.length));
+				Array<Type *> arg_types;
+        
+				for (auto par : decl->type_info->parameters) {
+					Type *par_type = convert_type(par);
+            
+					arg_types.add(par_type);
+				}
+        
+				Type *return_type = convert_type(decl->type_info->return_type);
+        
+				auto fn_type = FunctionType::get(return_type, ArrayRef<Type *>(arg_types.data, arg_types.length), false);
+        
+				auto loaded = load(call, fn_type->getPointerTo(), decl->llvm_reference);
+				call_inst = irb->CreateCall(fn_type, loaded, ArrayRef<Value *>(arguments.data, arguments.length));
 			} else {
 				Function *fun = get_or_create_function(call->resolved_function);
 				FunctionType *fun_type = fun->getFunctionType();
