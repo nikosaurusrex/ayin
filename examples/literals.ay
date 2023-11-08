@@ -21,7 +21,7 @@ func main() s32 {
     printf("%f %f\n", g, h);
     printf("%d %d\n", cast(s32) i, cast(s32) j);
     printf("%s\n", k);
-    printf("%p\n", nil);
+    printf("%p\n", null);
     printf("%d\n", sizeof(s32));
 
     return 0;

@@ -1358,6 +1358,10 @@ Expression *Typer::find_function_by_id(Identifier *id, Array<Expression *> *args
 		case AST_FUNCTION: {
 			auto fun = static_cast<AFunction *>(decl);
 			if (fun->identifier->atom == id->atom) {
+                if (fun->flags & FUNCTION_TEMPLATE) {
+					return fun;
+				}
+
 				int score = compare_arguments(id, args, &fun->type_info->parameters, fun->flags & FUNCTION_VARARG);
 				if ((score > 0 && score > max_score) || !best_matching_function) {
 					max_score = score;

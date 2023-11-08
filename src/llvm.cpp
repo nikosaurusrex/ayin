@@ -56,9 +56,9 @@ LLVMConverter::LLVMConverter(Compiler *compiler) {
 
 	auto cpu = "generic";
 	auto features = "";
-
+	
 	TargetOptions opt;
-	auto rm = Reloc::Model();
+	auto rm = std::optional<Reloc::Model>();
 	target_machine = target->createTargetMachine(target_triple, cpu, features, opt, rm);
 
 	llvm_context = new LLVMContext();
@@ -590,7 +590,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				case '*': {
 					auto value = convert_expression(unary->target, is_lvalue);
 
-					return load(unary, convert_type(unary->type_info), value);
+					return load(unary, convert_type(unary->target->type_info), value);
 				}
 				case '!': {
 					auto target = convert_expression(unary->target);
@@ -648,8 +648,9 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
             auto type = array_index->expression->type_info;
             if (is_array(type) && type->array_size == -1) {
                 array = gep(array_index, array_type, array, {ConstantInt::get(type_i32, 0), ConstantInt::get(type_i32, 0)});
-                array = load(array_index, array_type, array);
-                auto element = gep(array_index, array_type, array, index);
+
+                array = load(array_index, element_type->getPointerTo(), array);
+                auto element = gep(array_index, element_type, array, index);
                 
                 if (!is_lvalue) return load(array_index, element_type, element);
                 return element;
@@ -668,7 +669,7 @@ Value *LLVMConverter::convert_expression(Expression *expression, bool is_lvalue)
 				return element;
 			}
             
-            auto element = gep(array_index, convert_type(array_index->type_info), array, {ConstantInt::get(type_i64, 0), index});
+            auto element = gep(array_index, convert_type(array_index->expression->type_info), array, {ConstantInt::get(type_i64, 0), index});
             
             if (!is_lvalue) return load(array_index, element_type, element);
             return element;
