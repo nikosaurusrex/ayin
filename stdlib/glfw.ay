@@ -220,6 +220,7 @@ alias framebuffer_size_callback_fn (GLFWwindow, s32, s32) void;
 
 func glfwInit() s32 #foreign;
 func glfwWindowHint(hint: s32, value: s32) #foreign;
+func glfwDestroyWindow(window: GLFWwindow) #foreign;
 func glfwCreateWindow(width: s32, height: s32, title: *u8, monitor: *void, share: *void) GLFWwindow #foreign;
 func glfwWindowShouldClose(window: GLFWwindow) s32 #foreign;
 func glfwSwapBuffers(window: GLFWwindow) #foreign;
